@@ -33,7 +33,13 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </head>
 <body>
 <div class="container mt-4">
-  <h1>Manage Users</h1>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">Manage Users</h1>
+    <div>
+      <a href="organizer_profile.php" class="btn btn-primary me-2">Back to Profile</a>
+      <a href="logout.php" class="btn btn-outline-danger">Log Out</a>
+    </div>
+  </div>
 
   <?php if (!empty($error)): ?>
     <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
@@ -67,8 +73,6 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
       <?php endforeach; ?>
     </tbody>
   </table>
-
-  <a href="organizer_profile.php" class="btn btn-primary mt-3">Back to Profile</a>
 </div>
 </body>
 </html>

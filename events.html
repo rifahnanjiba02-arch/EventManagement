@@ -39,12 +39,18 @@
   </style>
 </head>
 <body>
+  <nav class="navbar navbar-dark bg-dark px-4">
+    <a href="index.html" class="navbar-brand text-decoration-none">Event Booking</a>
+    <div id="navActions">
+      <a href="login.php" class="btn btn-light me-2">Login</a>
+      <a href="register.html" class="btn btn-outline-light">Sign Up</a>
+    </div>
+  </nav>
+
   <div class="container mt-5">
-    <!-- Upcoming Events Section -->
     <h2 class="mb-4">Upcoming Events</h2>
     <div id="upcomingEventsContainer" class="row g-4"></div>
 
-    <!-- Previous Events Section -->
     <h2 class="mt-5 mb-4">Previous Events</h2>
     <div id="previousEventsContainer" class="row g-4"></div>
   </div>
@@ -53,18 +59,38 @@
     let userRole = null;
     let attendeeId = null;
 
-    // Fetch user session info first
     fetch('get_session.php')
       .then(response => response.json())
       .then(session => {
         userRole = session.role;
         attendeeId = session.attendee_id;
-        loadEvents(); // ⏩ load events only after session loaded
+        updateNav(session);
+        loadEvents();
       })
       .catch(error => {
         console.error('Failed to fetch session info:', error);
         alert('Session error. Please log in again.');
       });
+
+    function updateNav(session) {
+      const navActions = document.getElementById('navActions');
+
+      if (session.role === 'attendee') {
+        navActions.innerHTML = `
+          <a href="attendee_profile.php" class="btn btn-light me-2">My Profile</a>
+          <a href="my_bookings.html?attendee_id=${encodeURIComponent(session.attendee_id || '')}" class="btn btn-light me-2">My Bookings</a>
+          <a href="logout.php" class="btn btn-outline-light">Log Out</a>
+        `;
+        return;
+      }
+
+      if (session.role === 'organizer') {
+        navActions.innerHTML = `
+          <a href="organizer_profile.php" class="btn btn-light me-2">Dashboard</a>
+          <a href="logout.php" class="btn btn-outline-light">Log Out</a>
+        `;
+      }
+    }
 
     async function loadEvents() {
       try {
@@ -79,7 +105,7 @@
         previousContainer.innerHTML = '';
 
         function createEventCard(event) {
-          const canBook = (userRole === 'attendee' && attendeeId); // ✅ Booking allowed only if session valid
+          const canBook = userRole === 'attendee' && attendeeId;
 
           const col = document.createElement('div');
           col.className = 'col-md-6 col-lg-4';
@@ -112,7 +138,6 @@
         data.previousEvents.forEach(event => {
           previousContainer.appendChild(createEventCard(event));
         });
-
       } catch (error) {
         console.error('Error loading events:', error);
       }

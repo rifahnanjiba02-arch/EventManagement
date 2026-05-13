@@ -77,6 +77,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="container mt-5">
   <h2>Login</h2>
 
+  <?php if (isset($_GET['logged_out'])): ?>
+    <div class="alert alert-success">
+      You have been logged out successfully.
+    </div>
+  <?php endif; ?>
+
   <?php if (!empty($errors)): ?>
     <div class="alert alert-danger">
       <?php foreach ($errors as $error): ?>

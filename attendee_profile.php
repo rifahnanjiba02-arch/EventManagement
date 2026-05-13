@@ -73,7 +73,8 @@ try {
     <a class="navbar-brand">Attendee Dashboard</a>
     <div>
       <a href="events.html" class="btn btn-light me-2">Check New Events</a>
-      <a href="my_bookings.html?attendee_id=<?= urlencode($profile['attendee_id']) ?>" class="btn btn-light">My Bookings</a>
+      <a href="my_bookings.html?attendee_id=<?= urlencode($profile['attendee_id']) ?>" class="btn btn-light me-2">My Bookings</a>
+      <a href="logout.php" class="btn btn-outline-light">Log Out</a>
     </div>
   </nav>
 

@@ -27,6 +27,15 @@
   </style>
 </head>
 <body>
+  <nav class="navbar navbar-dark bg-dark px-4 mb-4">
+    <span class="navbar-brand">Feedback</span>
+    <div>
+      <a href="#" id="myBookingsLink" class="btn btn-light me-2">My Bookings</a>
+      <a href="attendee_profile.php" class="btn btn-light me-2">My Profile</a>
+      <a href="logout.php" class="btn btn-outline-light">Log Out</a>
+    </div>
+  </nav>
+
   <div class="container mt-5">
     <h2>Leave Feedback</h2>
     <form id="feedbackForm">
@@ -65,6 +74,24 @@
   </div>
 
   <script>
+    async function updateBookingsLink() {
+      const bookingsLink = document.getElementById('myBookingsLink');
+
+      try {
+        const response = await fetch('get_session.php');
+        const session = await response.json();
+
+        if (session.role === 'attendee' && session.attendee_id) {
+          bookingsLink.href = `my_bookings.html?attendee_id=${encodeURIComponent(session.attendee_id)}`;
+          return;
+        }
+      } catch (error) {
+        console.error('Failed to build bookings link:', error);
+      }
+
+      bookingsLink.href = 'login.php';
+    }
+
     async function loadEvents() {
       const select = document.getElementById('eventDropdown');
       select.innerHTML = '<option value="">-- Loading events... --</option>';
@@ -100,6 +127,7 @@
     }
 
     window.onload = () => {
+      updateBookingsLink();
       loadEvents();
 
       document.getElementById('feedbackForm').addEventListener('submit', async function(e) {

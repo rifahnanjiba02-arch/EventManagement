@@ -104,8 +104,9 @@ try {
     <div>
       <a href="create_event.html" class="btn btn-light me-2">Create Event</a>
       <?php if ($profile['is_admin'] == 1): ?>
-        <a href="manage_users.php" class="btn btn-warning">Manage Users</a>
+        <a href="manage_users.php" class="btn btn-warning me-2">Manage Users</a>
       <?php endif; ?>
+      <a href="logout.php" class="btn btn-outline-light">Log Out</a>
     </div>
   </nav>
 

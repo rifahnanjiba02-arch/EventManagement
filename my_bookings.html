@@ -6,6 +6,15 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
 </head>
 <body>
+  <nav class="navbar navbar-dark bg-dark px-4">
+    <span class="navbar-brand">My Bookings</span>
+    <div>
+      <a href="attendee_profile.php" class="btn btn-light me-2">My Profile</a>
+      <a href="events.html" class="btn btn-light me-2">Browse Events</a>
+      <a href="logout.php" class="btn btn-outline-light">Log Out</a>
+    </div>
+  </nav>
+
   <div class="container mt-5">
     <h2>My Booked Events</h2>
     <table class="table table-bordered mt-4" id="bookingsTable">
@@ -28,11 +37,31 @@
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
-    const attendeeId = urlParams.get('attendee_id');
+    let attendeeId = urlParams.get('attendee_id');
 
-    if (!attendeeId) {
-      alert('No attendee ID provided in URL');
-      throw new Error('No attendee ID provided');
+    async function ensureAttendeeSession() {
+      if (attendeeId) {
+        return true;
+      }
+
+      try {
+        const response = await fetch('get_session.php');
+        const session = await response.json();
+
+        if (session.role === 'attendee' && session.attendee_id) {
+          attendeeId = session.attendee_id;
+          const nextUrl = new URL(window.location.href);
+          nextUrl.searchParams.set('attendee_id', attendeeId);
+          window.history.replaceState({}, '', nextUrl);
+          return true;
+        }
+      } catch (error) {
+        console.error('Failed to restore attendee session:', error);
+      }
+
+      alert('Please log in as an attendee to view bookings.');
+      window.location.href = 'login.php';
+      return false;
     }
 
     async function fetchBookings() {
@@ -165,7 +194,11 @@
       return text.replace(/[&<>"']/g, m => map[m]);
     }
 
-    fetchBookings();
+    ensureAttendeeSession().then(hasSession => {
+      if (hasSession) {
+        fetchBookings();
+      }
+    });
   </script>
 </body>
 </html>
