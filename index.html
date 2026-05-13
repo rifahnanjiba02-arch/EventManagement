@@ -2,13 +2,445 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Event Booking | Home</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f6efe5;
+      --surface: rgba(255, 250, 245, 0.84);
+      --surface-strong: #fffaf5;
+      --text: #1d1b18;
+      --muted: #5f5a54;
+      --accent: #d95d39;
+      --accent-dark: #a94224;
+      --accent-soft: #ffd9c7;
+      --line: rgba(29, 27, 24, 0.1);
+      --shadow: 0 22px 60px rgba(83, 52, 30, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Source Sans 3", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 183, 130, 0.38), transparent 30%),
+        radial-gradient(circle at right center, rgba(217, 93, 57, 0.18), transparent 24%),
+        linear-gradient(180deg, #fff9f2 0%, var(--bg) 100%);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .page-shell {
+      width: min(1180px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 1rem 0 3rem;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 0;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.8rem;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 2.6rem;
+      height: 2.6rem;
+      border-radius: 0.9rem;
+      background: linear-gradient(135deg, #1d1b18, #4f4134);
+      color: #fff7f1;
+      box-shadow: 0 12px 24px rgba(29, 27, 24, 0.2);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      min-height: 2.9rem;
+      padding: 0.85rem 1.25rem;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-weight: 700;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #f28b50);
+      color: #fff;
+      box-shadow: 0 14px 28px rgba(217, 93, 57, 0.28);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, var(--accent-dark), var(--accent));
+    }
+
+    .btn-secondary {
+      border-color: rgba(29, 27, 24, 0.14);
+      background: rgba(255, 255, 255, 0.6);
+      color: var(--text);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+      gap: 2rem;
+      align-items: center;
+      padding: 3rem 0 2rem;
+    }
+
+    .hero-copy {
+      animation: rise 0.8s ease both;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.45rem 0.85rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid rgba(29, 27, 24, 0.08);
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-size: 0.82rem;
+    }
+
+    h1 {
+      margin: 1rem 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(2.8rem, 8vw, 5.4rem);
+      line-height: 0.97;
+      letter-spacing: -0.04em;
+    }
+
+    .hero-copy p {
+      max-width: 36rem;
+      margin: 0 0 1.5rem;
+      font-size: 1.15rem;
+      line-height: 1.65;
+      color: var(--muted);
+    }
+
+    .cta-row {
+      display: flex;
+      gap: 0.9rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.35rem;
+    }
+
+    .hero-note {
+      color: var(--muted);
+      font-size: 0.98rem;
+    }
+
+    .hero-panel {
+      position: relative;
+      min-height: 480px;
+      animation: rise 1s ease 0.1s both;
+    }
+
+    .showcase-card,
+    .mini-card {
+      position: absolute;
+      border: 1px solid var(--line);
+      border-radius: 1.6rem;
+      background: var(--surface);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+    }
+
+    .showcase-card {
+      inset: 3.3rem 0 0 2rem;
+      padding: 1.4rem;
+    }
+
+    .showcase-image {
+      height: 210px;
+      border-radius: 1.2rem;
+      background:
+        linear-gradient(140deg, rgba(255, 255, 255, 0.16), transparent 52%),
+        linear-gradient(135deg, rgba(36, 32, 28, 0.2), rgba(36, 32, 28, 0.06)),
+        url("https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1200&q=80") center/cover;
+    }
+
+    .showcase-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin: 1rem 0 0.7rem;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .showcase-card h2 {
+      margin: 0 0 0.5rem;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.55rem;
+    }
+
+    .showcase-card p,
+    .mini-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .mini-card {
+      padding: 1rem 1.1rem;
+      max-width: 220px;
+    }
+
+    .mini-card strong {
+      display: block;
+      margin-bottom: 0.25rem;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1rem;
+    }
+
+    .mini-one {
+      top: 0;
+      left: 0;
+    }
+
+    .mini-two {
+      right: 1rem;
+      bottom: 2rem;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .stat {
+      padding: 1.2rem;
+      border-radius: 1.3rem;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid var(--line);
+    }
+
+    .stat strong {
+      display: block;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.7rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .feature-card {
+      padding: 1.4rem;
+      border-radius: 1.5rem;
+      background: var(--surface-strong);
+      border: 1px solid var(--line);
+      box-shadow: 0 10px 25px rgba(83, 52, 30, 0.08);
+      animation: rise 0.7s ease both;
+    }
+
+    .feature-card:nth-child(2) {
+      animation-delay: 0.08s;
+    }
+
+    .feature-card:nth-child(3) {
+      animation-delay: 0.16s;
+    }
+
+    .feature-card h3 {
+      margin: 0 0 0.6rem;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.1rem;
+    }
+
+    .feature-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 920px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-panel {
+        min-height: 420px;
+      }
+
+      .stats,
+      .feature-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page-shell {
+        width: min(100% - 1.25rem, 1180px);
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .hero {
+        padding-top: 2rem;
+      }
+
+      .showcase-card {
+        inset: 2.6rem 0 0 0;
+      }
+
+      .mini-two {
+        right: 0;
+        bottom: 1rem;
+      }
+    }
+  </style>
 </head>
-<body class="text-center p-5">
-  <h1>🎉 Welcome to Event Booking System</h1>
-  <p class="lead">Book, Organize, and Enjoy Events Easily</p>
-  <a href="login.php" class="btn btn-primary mt-4">Login</a>
-  <a href="register.html" class="btn btn-outline-success mt-4 ms-2">Sign Up</a>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a href="index.html" class="brand" aria-label="Event Booking home">
+        <span class="brand-mark">EB</span>
+        <span>Event Booking</span>
+      </a>
+
+      <nav class="nav-actions" aria-label="Primary">
+        <a href="events.html" class="btn btn-secondary">Browse Events</a>
+        <a href="login.php" class="btn btn-secondary">Login</a>
+        <a href="register.html" class="btn btn-primary">Create Account</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow">Live events, simple booking</div>
+          <h1>Plan it. Fill it. Make it unforgettable.</h1>
+          <p>
+            Event Booking helps attendees discover great events and gives organizers a clean way to publish, manage, and grow them without friction.
+          </p>
+
+          <div class="cta-row">
+            <a href="events.html" class="btn btn-primary">Explore Events</a>
+            <a href="create_event.html" class="btn btn-secondary">Host an Event</a>
+          </div>
+
+          <div class="hero-note">
+            Join as an attendee to book your spot, or sign in as an organizer to manage your lineup.
+          </div>
+
+          <div class="stats" aria-label="Platform highlights">
+            <div class="stat">
+              <strong>Fast</strong>
+              Smooth booking and quick account access.
+            </div>
+            <div class="stat">
+              <strong>Clear</strong>
+              Separate flows for attendees and organizers.
+            </div>
+            <div class="stat">
+              <strong>Ready</strong>
+              Browse upcoming events right from the start.
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-panel" aria-hidden="true">
+          <div class="mini-card mini-one">
+            <strong>For attendees</strong>
+            <p>Find upcoming experiences and reserve a seat in a few clicks.</p>
+          </div>
+
+          <article class="showcase-card">
+            <div class="showcase-image"></div>
+            <div class="showcase-meta">
+              <span>Featured experience</span>
+              <span>Open for booking</span>
+            </div>
+            <h2>Discover your next event</h2>
+            <p>From workshops to live shows, keep everything in one place and move from browsing to booking without leaving the platform.</p>
+          </article>
+
+          <div class="mini-card mini-two">
+            <strong>For organizers</strong>
+            <p>Create events, manage bookings, and keep your dashboard close at hand.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="feature-grid">
+        <article class="feature-card">
+          <h3>Browse what is coming next</h3>
+          <p>The public events page lets visitors see upcoming and previous events before they commit to an account.</p>
+        </article>
+        <article class="feature-card">
+          <h3>Separate roles, less confusion</h3>
+          <p>Attendees can manage bookings while organizers get their own workflow for creating and tracking events.</p>
+        </article>
+        <article class="feature-card">
+          <h3>Start from the page you land on</h3>
+          <p>The main actions on this screen now point directly to the working login, signup, events, and host-event pages.</p>
+        </article>
+      </section>
+    </main>
+  </div>
 </body>
 </html>
