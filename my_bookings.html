@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>My Bookings</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+  <div class="container mt-5">
+    <h2>My Booked Events</h2>
+    <table class="table table-bordered mt-4" id="bookingsTable">
+      <thead class="table-dark">
+        <tr>
+          <th>Event</th>
+          <th>Date</th>
+          <th>Location</th>
+          <th>Status</th>
+          <th>Attendance</th>
+          <th>Total Participants</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="bookingsBody">
+        <!-- Data will be inserted here -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const attendeeId = urlParams.get('attendee_id');
+
+    if (!attendeeId) {
+      alert('No attendee ID provided in URL');
+      throw new Error('No attendee ID provided');
+    }
+
+    async function fetchBookings() {
+      try {
+        const response = await fetch(`get_bookings.php?attendee_id=${encodeURIComponent(attendeeId)}`);
+        if (!response.ok) throw new Error('Failed to fetch bookings');
+        const bookings = await response.json();
+
+        const tbody = document.getElementById('bookingsBody');
+        tbody.innerHTML = '';
+
+        bookings.forEach(booking => {
+          const tr = document.createElement('tr');
+
+          const eventDate = new Date(booking.date);
+          const today = new Date();
+          // Normalize time to ignore hours/minutes
+          const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+          const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+          const isToday = eventDay.getTime() === todayDay.getTime();
+
+          const canCheckIn = booking.status.toLowerCase() === 'confirmed' 
+                             && booking.attendance.toLowerCase() === 'pending' 
+                             && isToday;
+
+          tr.innerHTML = `
+            <td>${escapeHtml(booking.event)}</td>
+            <td>${escapeHtml(booking.date)}</td>
+            <td>${escapeHtml(booking.location)}</td>
+            <td>${capitalize(booking.status)}</td>
+            <td id="attendance-${booking.event_id}">${capitalize(booking.attendance)}</td>
+            <td>${booking.total_participants}</td>
+            <td>
+              ${canCheckIn 
+                ? `<button class="btn btn-sm btn-success me-2" onclick="checkIn(${booking.event_id})">Check In</button>`
+                : ''
+              }
+              ${booking.status.toLowerCase() === 'confirmed' 
+                ? `
+                  <button class="btn btn-sm btn-primary me-2" onclick="goToFeedback('${escapeHtml(booking.event)}')">Leave Feedback</button>
+                  ${booking.attendance.toLowerCase() !== 'checked_in' 
+                    ? `<button class="btn btn-sm btn-danger" onclick="cancelBooking(${booking.event_id})">Cancel Booking</button>`
+                    : '<span class="text-muted">Already Checked In</span>'
+                  }
+                `
+                : '<span class="text-muted">Unavailable</span>'
+              }
+            </td>
+          `;
+
+          tbody.appendChild(tr);
+        });
+      } catch (error) {
+        console.error(error);
+        alert('Error loading bookings.');
+      }
+    }
+
+    async function checkIn(eventId) {
+      if (!confirm('Confirm Check In for this event?')) return;
+
+      try {
+        const response = await fetch('update_attendance.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            attendee_id: parseInt(attendeeId),
+            event_id: eventId,
+            attendance_status: 'checked_in'
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          alert('Checked in successfully!');
+          document.getElementById(`attendance-${eventId}`).textContent = 'Checked In';
+          fetchBookings(); // refresh list
+        } else {
+          alert('Failed to check in: ' + (result.error || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error(error);
+        alert('Error during check in.');
+      }
+    }
+
+    function goToFeedback(eventName) {
+      const url = new URL('feedback.html', window.location.href);
+      url.searchParams.set('event', eventName);
+      window.location.href = url.toString();
+    }
+
+    async function cancelBooking(eventId) {
+      if (!confirm('Are you sure you want to cancel this booking?')) return;
+
+      try {
+        const response = await fetch('cancel_booking.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ event_id: eventId, attendee_id: parseInt(attendeeId) })
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          alert('Booking cancelled successfully.');
+          fetchBookings();
+        } else {
+          alert('Failed to cancel booking: ' + (result.error || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error(error);
+        alert('Error cancelling booking.');
+      }
+    }
+
+    function capitalize(str) {
+      if (!str) return '';
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    function escapeHtml(text) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    fetchBookings();
+  </script>
+</body>
+</html>
