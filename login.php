@@ -252,6 +252,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       box-shadow: 0 0 0 0.2rem rgba(15, 118, 110, 0.12);
     }
 
+    .role-picker {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .role-option input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .role-card {
+      display: block;
+      height: 100%;
+      padding: 18px 18px 16px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.92);
+      cursor: pointer;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+    }
+
+    .role-card strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 1rem;
+    }
+
+    .role-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.94rem;
+      line-height: 1.45;
+    }
+
+    .role-option input:checked + .role-card {
+      border-color: rgba(15, 118, 110, 0.65);
+      box-shadow: 0 0 0 0.2rem rgba(15, 118, 110, 0.12);
+      transform: translateY(-1px);
+      background: linear-gradient(180deg, rgba(240, 253, 250, 0.98), rgba(255, 255, 255, 0.98));
+    }
+
+    .role-option input:focus-visible + .role-card {
+      box-shadow: 0 0 0 0.24rem rgba(15, 118, 110, 0.16);
+    }
+
     .btn-auth {
       width: 100%;
       min-height: 54px;
@@ -296,6 +343,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       .auth-hero,
       .auth-form-wrap {
         padding: 32px 24px;
+      }
+    }
+
+    @media (max-width: 575.98px) {
+      .role-picker {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -364,12 +417,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               </div>
 
               <div class="mb-4">
-                <label for="role" class="form-label">Account Type</label>
-                <select name="role" id="role" class="form-select" required>
-                  <option value="">Select your role</option>
-                  <option value="attendee" <?= $formData['role'] === 'attendee' ? 'selected' : '' ?>>Attendee</option>
-                  <option value="organizer" <?= $formData['role'] === 'organizer' ? 'selected' : '' ?>>Organizer</option>
-                </select>
+                <label class="form-label d-block">Account Type</label>
+                <div class="role-picker" role="radiogroup" aria-label="Account Type">
+                  <label class="role-option">
+                    <input type="radio" name="role" value="attendee" <?= $formData['role'] === 'attendee' ? 'checked' : '' ?> required>
+                    <span class="role-card">
+                      <strong>Attendee</strong>
+                      <span>Track bookings, manage your profile, and leave feedback after events.</span>
+                    </span>
+                  </label>
+                  <label class="role-option">
+                    <input type="radio" name="role" value="organizer" <?= $formData['role'] === 'organizer' ? 'checked' : '' ?> required>
+                    <span class="role-card">
+                      <strong>Organizer</strong>
+                      <span>Create events, manage your workspace, and oversee attendee activity.</span>
+                    </span>
+                  </label>
+                </div>
               </div>
 
               <button type="submit" class="btn btn-auth">Sign In</button>
