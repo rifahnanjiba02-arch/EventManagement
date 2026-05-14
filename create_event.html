@@ -326,6 +326,125 @@
       padding-bottom: 0.6rem;
     }
 
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .collaborator-picker {
+      padding: 1rem;
+      border: 1px solid rgba(33, 29, 25, 0.1);
+      border-radius: 1.1rem;
+      background: linear-gradient(180deg, rgba(255, 251, 247, 0.95), rgba(255, 245, 238, 0.9));
+    }
+
+    .picker-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.85rem;
+      flex-wrap: wrap;
+    }
+
+    .picker-count {
+      font-weight: 700;
+      color: var(--accent-dark);
+    }
+
+    .chip-row {
+      display: flex;
+      gap: 0.55rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.85rem;
+      min-height: 1.5rem;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.42rem 0.8rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+
+    .chip-empty {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .collaborator-list {
+      display: grid;
+      gap: 0.75rem;
+      max-height: 18rem;
+      overflow: auto;
+      padding-right: 0.2rem;
+    }
+
+    .collaborator-card {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.9rem;
+      align-items: start;
+      padding: 0.9rem 1rem;
+      border: 1px solid rgba(33, 29, 25, 0.1);
+      border-radius: 1rem;
+      background: rgba(255, 255, 255, 0.88);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+      cursor: pointer;
+    }
+
+    .collaborator-card:hover {
+      transform: translateY(-1px);
+      border-color: rgba(217, 104, 65, 0.34);
+      box-shadow: 0 10px 20px rgba(83, 52, 30, 0.08);
+    }
+
+    .collaborator-card.is-selected {
+      border-color: rgba(217, 104, 65, 0.52);
+      background: #fffaf5;
+      box-shadow: 0 10px 24px rgba(217, 104, 65, 0.1);
+    }
+
+    .collaborator-card input[type="checkbox"] {
+      width: 1.15rem;
+      height: 1.15rem;
+      min-height: 1.15rem;
+      margin-top: 0.18rem;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .collaborator-name {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 0.12rem;
+    }
+
+    .collaborator-email {
+      color: var(--muted);
+      word-break: break-word;
+    }
+
+    .picker-empty {
+      padding: 1rem;
+      border-radius: 1rem;
+      border: 1px dashed rgba(33, 29, 25, 0.16);
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.58);
+      text-align: center;
+    }
+
     .actions {
       display: flex;
       justify-content: flex-end;
@@ -437,8 +556,20 @@
 
             <div class="field field-full">
               <label for="collaborators">Collaborators</label>
-              <select name="collaborators[]" id="collaborators" multiple></select>
-              <div class="field-note">Optional. Hold Ctrl on Windows or Cmd on Mac to select more than one organizer.</div>
+              <select name="collaborators[]" id="collaborators" multiple class="sr-only"></select>
+              <div class="collaborator-picker">
+                <div class="picker-topbar">
+                  <input type="search" id="collaboratorSearch" placeholder="Search by name or email" autocomplete="off" />
+                  <div id="selectedCount" class="picker-count">0 selected</div>
+                </div>
+                <div id="selectedChips" class="chip-row">
+                  <span class="chip-empty">No collaborators selected yet.</span>
+                </div>
+                <div id="collaboratorList" class="collaborator-list">
+                  <div class="picker-empty">Loading collaborators...</div>
+                </div>
+              </div>
+              <div class="field-note">Optional. Search and tick organizers you want to invite. They will receive a request before the event appears in their organizer dashboard.</div>
             </div>
           </div>
 
@@ -457,9 +588,84 @@
       const message = document.getElementById('accessMessage');
       const select = document.getElementById('collaborators');
       const dateInput = document.getElementById('date');
+      const collaboratorSearch = document.getElementById('collaboratorSearch');
+      const collaboratorList = document.getElementById('collaboratorList');
+      const selectedCount = document.getElementById('selectedCount');
+      const selectedChips = document.getElementById('selectedChips');
+
+      const collaborators = [];
 
       dateInput.min = new Date().toISOString().split('T')[0];
       select.innerHTML = '<option disabled>Loading collaborators...</option>';
+
+      function updateSelectedSummary() {
+        const selected = collaborators.filter(collaborator => collaborator.selected);
+        selectedCount.textContent = `${selected.length} selected`;
+        selectedChips.innerHTML = '';
+
+        if (selected.length === 0) {
+          selectedChips.innerHTML = '<span class="chip-empty">No collaborators selected yet.</span>';
+          return;
+        }
+
+        selected.forEach(collaborator => {
+          const chip = document.createElement('span');
+          chip.className = 'chip';
+          chip.textContent = collaborator.name;
+          selectedChips.appendChild(chip);
+        });
+      }
+
+      function syncSelectOptions() {
+        Array.from(select.options).forEach(option => {
+          const collaborator = collaborators.find(item => String(item.id) === option.value);
+          option.selected = Boolean(collaborator && collaborator.selected);
+        });
+      }
+
+      function renderCollaboratorList(filterText = '') {
+        const query = filterText.trim().toLowerCase();
+        collaboratorList.innerHTML = '';
+
+        const filtered = collaborators.filter(collaborator =>
+          collaborator.name.toLowerCase().includes(query) ||
+          collaborator.email.toLowerCase().includes(query)
+        );
+
+        if (filtered.length === 0) {
+          collaboratorList.innerHTML = '<div class="picker-empty">No collaborators match your search.</div>';
+          return;
+        }
+
+        filtered.forEach(collaborator => {
+          const item = document.createElement('label');
+          item.className = `collaborator-card${collaborator.selected ? ' is-selected' : ''}`;
+
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.checked = collaborator.selected;
+          checkbox.addEventListener('change', () => {
+            collaborator.selected = checkbox.checked;
+            item.classList.toggle('is-selected', collaborator.selected);
+            syncSelectOptions();
+            updateSelectedSummary();
+          });
+
+          const content = document.createElement('div');
+          content.innerHTML = `
+            <span class="collaborator-name">${collaborator.name}</span>
+            <span class="collaborator-email">${collaborator.email}</span>
+          `;
+
+          item.appendChild(checkbox);
+          item.appendChild(content);
+          collaboratorList.appendChild(item);
+        });
+      }
+
+      collaboratorSearch.addEventListener('input', event => {
+        renderCollaboratorList(event.target.value);
+      });
 
       fetch('get_session.php')
         .then(res => res.json())
@@ -480,17 +686,28 @@
         .then(data => {
           if (!Array.isArray(data) || data.length === 0) {
             select.innerHTML = '<option disabled>No additional organizers available</option>';
+            collaboratorList.innerHTML = '<div class="picker-empty">No additional organizers available right now.</div>';
             return;
           }
 
           select.innerHTML = '';
+          collaborators.length = 0;
 
           data.forEach(org => {
             const option = document.createElement('option');
             option.value = org.organizer_id;
             option.textContent = `${org.first_name} ${org.last_name} (${org.email})`;
             select.appendChild(option);
+            collaborators.push({
+              id: org.organizer_id,
+              name: `${org.first_name} ${org.last_name}`,
+              email: org.email,
+              selected: false
+            });
           });
+
+          renderCollaboratorList();
+          updateSelectedSummary();
         })
         .catch(err => {
           if (err.message === 'UNAUTHORIZED_CREATE_EVENT_PAGE') {
@@ -499,6 +716,7 @@
 
           console.error(err);
           select.innerHTML = '<option disabled>Failed to load collaborators</option>';
+          collaboratorList.innerHTML = '<div class="picker-empty">Failed to load collaborators.</div>';
         });
     });
   </script>
