@@ -30,6 +30,12 @@ try {
     }
 
     $organizerId = (int)$profile['organizer_id'];
+    $fullName = trim(($profile['first_name'] ?? '') . ' ' . ($profile['last_name'] ?? ''));
+    $socialLinks = array_values(array_filter([
+        $profile['social_link1'] ?? '',
+        $profile['social_link2'] ?? '',
+        $profile['social_link3'] ?? '',
+    ]));
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
         $bio = $_POST['bio'] ?? null;
@@ -195,6 +201,16 @@ try {
       position: sticky;
       top: 0;
       z-index: 1030;
+      background: linear-gradient(90deg, #24313f 0%, #2f4052 100%) !important;
+      box-shadow: 0 10px 24px rgba(31, 41, 51, 0.14);
+    }
+    .nav-panel {
+      padding: 0.85rem 0;
+    }
+    .navbar-brand {
+      color: #fff !important;
+      font-weight: 700;
+      letter-spacing: 0.01em;
     }
     .profile-nav-links {
       display: flex;
@@ -203,24 +219,28 @@ try {
       margin-top: 0.85rem;
     }
     .profile-nav-links a {
-      padding: 0.45rem 0.85rem;
+      padding: 0.4rem 0.8rem;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.12);
-      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
+      color: #f6dfd2;
       text-decoration: none;
-      font-size: 0.92rem;
+      font-size: 0.88rem;
+      font-weight: 600;
+      transition: background-color 0.2s ease, transform 0.2s ease;
     }
     .profile-nav-links a:hover {
-      background: rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.16);
+      transform: translateY(-1px);
     }
     #pfp-display {
-      width: 150px;
-      height: 150px;
+      width: 158px;
+      height: 158px;
       object-fit: cover;
       border-radius: 50%;
       border: 3px solid #f0ddd4;
       margin-bottom: 1rem;
       box-shadow: 0 14px 28px rgba(84, 52, 37, 0.12);
+      background: #fffdfa;
     }
     .admin-badge {
       background-color: #dc3545;
@@ -241,9 +261,11 @@ try {
     .profile-card {
       padding: 1.5rem;
       height: 100%;
+      overflow: hidden;
     }
     .section-card {
       padding: 1.35rem;
+      overflow: hidden;
     }
     .stat-card {
       padding: 1rem 1.1rem;
@@ -257,15 +279,25 @@ try {
     .profile-info label {
       font-weight: 700;
       display: block;
-      margin-bottom: 0.35rem;
+      margin-bottom: 0.3rem;
     }
-    .profile-info p,
+    .profile-info .info-box,
     .profile-info .links-box {
       background: #f8f5f1;
-      padding: 0.75rem 0.9rem;
-      border-radius: 0.85rem;
-      white-space: pre-wrap;
+      padding: 0.7rem 0.85rem;
+      border-radius: 1rem;
       margin-bottom: 0;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+    .profile-info .links-box ul {
+      margin-bottom: 0;
+      padding-left: 1.1rem;
+    }
+    .profile-info .links-box li + li {
+      margin-top: 0.45rem;
     }
     .request-card,
     .notification-card,
@@ -304,11 +336,162 @@ try {
     .table thead th {
       white-space: nowrap;
     }
+    .admin-spotlight {
+      background:
+        linear-gradient(135deg, rgba(220, 53, 69, 0.12), rgba(255, 255, 255, 0.94)),
+        rgba(255, 255, 255, 0.94);
+    }
+    .navbar .btn {
+      border-radius: 999px;
+      font-weight: 600;
+      padding-inline: 1rem;
+    }
+    .navbar .btn-light {
+      color: #fff;
+      background-color: #c45b33;
+      border-color: #c45b33;
+    }
+    .navbar .btn-light:hover,
+    .navbar .btn-light:focus {
+      color: #fff;
+      background-color: #9f4524;
+      border-color: #9f4524;
+    }
+    .navbar .btn-warning {
+      color: #4a3318;
+      background-color: #f3c765;
+      border-color: #f3c765;
+    }
+    .navbar .btn-warning:hover,
+    .navbar .btn-warning:focus {
+      color: #2f210f;
+      background-color: #e9ba4d;
+      border-color: #e9ba4d;
+    }
+    .navbar .btn-outline-light {
+      color: #fff7f2;
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .navbar .btn-outline-light:hover,
+    .navbar .btn-outline-light:focus {
+      color: #1f2933;
+      background: #fff;
+      border-color: #fff;
+    }
+    .profile-info .mb-3 {
+      min-width: 0;
+      margin-bottom: 0.7rem !important;
+    }
+    .profile-fields {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.7rem;
+    }
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .profile-section-label {
+      display: block;
+      margin-bottom: 0.3rem;
+      font-weight: 700;
+    }
+    .profile-upload-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      text-align: center;
+    }
+    .profile-upload-card .upload-form {
+      width: 100%;
+      max-width: 420px;
+    }
+    .profile-upload-card .form-control,
+    .profile-upload-card .btn {
+      border-radius: 0.9rem;
+    }
+    .profile-upload-card .btn-primary {
+      width: 100%;
+      background-color: #c45b33;
+      border-color: #c45b33;
+    }
+    .profile-upload-card .btn-primary:hover,
+    .profile-upload-card .btn-primary:focus {
+      background-color: #9f4524;
+      border-color: #9f4524;
+    }
+    .profile-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.8rem;
+    }
+    .profile-heading > div {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+    .profile-heading .btn {
+      flex-shrink: 0;
+    }
+    .profile-details-copy {
+      color: #6f665e;
+      margin-bottom: 0;
+    }
+    .links-box.slim-links {
+      min-height: 0;
+      padding-top: 0.7rem;
+      padding-bottom: 0.7rem;
+    }
+    .links-box.slim-links li {
+      margin-bottom: 0.35rem;
+    }
+    .links-box.slim-links li:last-child {
+      margin-bottom: 0;
+    }
+    .profile-info .btn-primary {
+      background-color: #c45b33;
+      border-color: #c45b33;
+      border-radius: 0.7rem;
+      padding: 0.55rem 1rem;
+      font-weight: 600;
+    }
+    .profile-info .btn-primary:hover,
+    .profile-info .btn-primary:focus {
+      background-color: #9f4524;
+      border-color: #9f4524;
+    }
+    .profile-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    @media (max-width: 767.98px) {
+      .section-card,
+      .profile-card {
+        padding: 1.1rem;
+      }
+      .nav-panel {
+        padding: 0.75rem 0;
+      }
+      .section-title {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+      .profile-heading {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
   </style>
 </head>
 <body>
   <nav class="navbar navbar-dark bg-dark px-4 py-3">
-    <div class="container-fluid px-0">
+    <div class="container-fluid px-0 nav-panel">
       <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 w-100">
         <div>
           <a class="navbar-brand mb-0">Organizer Dashboard</a>
@@ -360,55 +543,76 @@ try {
 
     <div class="row g-4">
       <div class="col-lg-4">
-        <div class="profile-card text-center">
+        <div class="profile-card profile-upload-card">
           <img id="pfp-display" src="<?= htmlspecialchars($profile['profile_picture'] ?: 'https://via.placeholder.com/150') ?>" alt="Profile Picture" />
-          <form action="upload_profile_pic.php" method="POST" enctype="multipart/form-data" class="mt-2">
+          <h2 class="h4 mb-1"><?= htmlspecialchars($profile['first_name'] . ' ' . $profile['last_name']) ?></h2>
+          <p class="mini-muted mb-3">Profile photo and identity</p>
+          <form action="upload_profile_pic.php" method="POST" enctype="multipart/form-data" class="mt-2 upload-form">
             <input type="file" name="profile_pic" accept="image/*" class="form-control" required />
-            <button type="submit" class="btn btn-primary mt-2 w-100">Upload</button>
+            <button type="submit" class="btn btn-primary mt-2">Upload New Photo</button>
           </form>
         </div>
       </div>
 
       <div class="col-lg-8">
         <div class="profile-card profile-info">
-          <div class="mb-3">
-            <label>Name</label>
-            <p><?= htmlspecialchars($profile['first_name'] . ' ' . $profile['last_name']) ?></p>
-          </div>
-          <div class="mb-3">
-            <label>Email</label>
-            <p><?= htmlspecialchars($profile['email']) ?></p>
-          </div>
-          <div class="mb-3">
-            <label>Bio</label>
-            <p id="bio-display"><?= nl2br(htmlspecialchars($profile['bio'] ?: 'No bio provided.')) ?></p>
-          </div>
-          <div class="mb-3">
-            <label>Website / Social Links</label>
-            <div class="links-box">
-              <ul class="mb-0 ps-3">
-                <?php if ($profile['social_link1']): ?>
-                  <li><a href="<?= htmlspecialchars($profile['social_link1']) ?>" target="_blank"><?= htmlspecialchars($profile['social_link1']) ?></a></li>
-                <?php endif; ?>
-                <?php if ($profile['social_link2']): ?>
-                  <li><a href="<?= htmlspecialchars($profile['social_link2']) ?>" target="_blank"><?= htmlspecialchars($profile['social_link2']) ?></a></li>
-                <?php endif; ?>
-                <?php if ($profile['social_link3']): ?>
-                  <li><a href="<?= htmlspecialchars($profile['social_link3']) ?>" target="_blank"><?= htmlspecialchars($profile['social_link3']) ?></a></li>
-                <?php endif; ?>
-                <?php if (!$profile['social_link1'] && !$profile['social_link2'] && !$profile['social_link3']): ?>
-                  <li>No links provided.</li>
-                <?php endif; ?>
-              </ul>
+          <div class="profile-heading">
+            <div>
+              <h2 class="h4 mb-1">Profile Details</h2>
+              <p class="profile-details-copy">Everything other attendees and organizers need to recognize your account at a glance.</p>
             </div>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+              Edit Profile
+            </button>
           </div>
 
-          <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editProfileModal">
-            Edit Profile
-          </button>
+          <div class="profile-fields">
+            <div class="detail-item">
+              <label class="profile-section-label">Full Name</label>
+              <div class="info-box"><?= htmlspecialchars($fullName) ?></div>
+            </div>
+            <div class="detail-item">
+              <label class="profile-section-label">Email</label>
+              <div class="info-box"><?= htmlspecialchars($profile['email']) ?></div>
+            </div>
+            <div class="detail-item">
+              <label class="profile-section-label">Bio</label>
+              <div class="info-box" id="bio-display"><?= $profile['bio'] ? nl2br(htmlspecialchars($profile['bio'])) : '<em>No bio set yet.</em>' ?></div>
+            </div>
+            <div class="detail-item">
+              <label class="profile-section-label">Website and Social Links</label>
+              <div class="links-box slim-links">
+                <?php if ($socialLinks): ?>
+                  <ul class="mb-0 ps-3">
+                    <?php foreach ($socialLinks as $link): ?>
+                      <li><a href="<?= htmlspecialchars($link) ?>" target="_blank" rel="noopener noreferrer"><?= htmlspecialchars($link) ?></a></li>
+                    <?php endforeach; ?>
+                  </ul>
+                <?php else: ?>
+                  <em>No social links set.</em>
+                <?php endif; ?>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
+
+    <?php if ((int)$profile['is_admin'] === 1): ?>
+      <div class="section-card admin-spotlight mt-4">
+        <div class="section-title">
+          <div>
+            <h4 class="mb-1">Admin Controls</h4>
+            <p class="mini-muted mb-0">You have elevated access to manage users alongside your organizer workflow.</p>
+          </div>
+          <span class="badge text-bg-danger rounded-pill">Admin access enabled</span>
+        </div>
+        <div class="profile-actions">
+          <a href="manage_users.php" class="btn btn-danger">Open User Management</a>
+          <a href="create_event.html" class="btn btn-outline-secondary">Create Another Event</a>
+        </div>
+      </div>
+    <?php endif; ?>
 
     <div class="row g-4 mt-1">
       <div class="col-lg-7">
