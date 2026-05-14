@@ -1,6 +1,6 @@
 <?php
 require('db.php');
-session_start();
+require_once 'session_bootstrap.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'attendee') {
     header('Location: login.php');

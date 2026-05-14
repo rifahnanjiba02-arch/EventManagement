@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once 'session_bootstrap.php';
 header('Content-Type: application/json');
 
 echo json_encode([

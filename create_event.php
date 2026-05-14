@@ -1,6 +1,6 @@
 <?php
 require 'db.php';
-session_start();
+require_once 'session_bootstrap.php';
 
 header('Content-Type: application/json');
 

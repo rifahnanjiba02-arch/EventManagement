@@ -1,6 +1,6 @@
 <?php
 // upload_profile_pic.php
-session_start();
+require_once 'session_bootstrap.php';
 require 'db.php';
 
 // Check if user is logged in

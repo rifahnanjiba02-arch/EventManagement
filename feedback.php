@@ -1,7 +1,7 @@
 <?php
 header('Content-Type: application/json');
 require 'db.php';
-session_start();
+require_once 'session_bootstrap.php';
 
 //  Ensure attendee is logged in
 if (!isset($_SESSION['attendee_id'])) {
