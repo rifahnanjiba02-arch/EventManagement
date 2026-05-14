@@ -2,74 +2,721 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Create Event</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f7f1e8;
+      --surface: rgba(255, 250, 245, 0.9);
+      --surface-strong: #fffdf9;
+      --text: #211d19;
+      --muted: #6b6259;
+      --accent: #d96841;
+      --accent-dark: #af4d2c;
+      --accent-soft: #ffe1d3;
+      --line: rgba(33, 29, 25, 0.1);
+      --shadow: 0 24px 55px rgba(83, 52, 30, 0.14);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Source Sans 3", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 196, 150, 0.35), transparent 24%),
+        radial-gradient(circle at right center, rgba(79, 125, 118, 0.14), transparent 18%),
+        linear-gradient(180deg, #fffaf4 0%, var(--bg) 100%);
+    }
+
+    a,
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .page-shell {
+      width: min(1120px, calc(100% - 1.5rem));
+      margin: 0 auto;
+      padding: 1rem 0 3rem;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.85rem 0 1.4rem;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.8rem;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .brand-mark {
+      width: 2.8rem;
+      height: 2.8rem;
+      display: grid;
+      place-items: center;
+      border-radius: 0.95rem;
+      color: #fff9f4;
+      background: linear-gradient(135deg, #251f1b, #5f4f43);
+      box-shadow: 0 14px 26px rgba(37, 31, 27, 0.18);
+    }
+
+    .nav-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 2.95rem;
+      padding: 0.82rem 1.2rem;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-primary {
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent), #f08b4e);
+      box-shadow: 0 14px 28px rgba(217, 104, 65, 0.24);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, var(--accent-dark), var(--accent));
+    }
+
+    .btn-secondary {
+      border-color: var(--line);
+      background: rgba(255, 255, 255, 0.7);
+      color: var(--text);
+    }
+
+    .btn-ghost {
+      border-color: rgba(33, 29, 25, 0.14);
+      background: transparent;
+      color: var(--text);
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.15fr);
+      gap: 1.4rem;
+      padding: 1.4rem;
+      border: 1px solid rgba(33, 29, 25, 0.08);
+      border-radius: var(--radius-xl);
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(255, 246, 239, 0.76));
+      box-shadow: var(--shadow);
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -3rem;
+      bottom: -4rem;
+      width: 16rem;
+      height: 16rem;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(217, 104, 65, 0.18), transparent 68%);
+      pointer-events: none;
+    }
+
+    .intro,
+    .form-card {
+      position: relative;
+      z-index: 1;
+    }
+
+    .intro {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 1rem;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 245, 237, 0.92));
+      border: 1px solid rgba(33, 29, 25, 0.06);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      width: fit-content;
+      padding: 0.42rem 0.8rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(33, 29, 25, 0.08);
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 1rem 0 0.9rem;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(2.2rem, 6vw, 4rem);
+      line-height: 0.98;
+      letter-spacing: -0.04em;
+    }
+
+    .intro p {
+      margin: 0;
+      max-width: 31rem;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.65;
+    }
+
+    .tips {
+      display: grid;
+      gap: 0.9rem;
+      margin-top: 1.5rem;
+    }
+
+    .tip {
+      padding: 1rem 1.05rem;
+      border-radius: 1.1rem;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(33, 29, 25, 0.08);
+    }
+
+    .tip strong {
+      display: block;
+      margin-bottom: 0.2rem;
+      font-size: 1rem;
+    }
+
+    .form-card {
+      padding: 1.5rem;
+      border-radius: var(--radius-lg);
+      background: var(--surface-strong);
+      border: 1px solid rgba(33, 29, 25, 0.08);
+    }
+
+    .card-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .card-heading h2 {
+      margin: 0 0 0.25rem;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.5rem;
+    }
+
+    .card-heading p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .status-badge {
+      padding: 0.5rem 0.8rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .alert {
+      display: none;
+      margin-bottom: 1rem;
+      padding: 0.95rem 1rem;
+      border-radius: 1rem;
+      border: 1px solid rgba(173, 95, 32, 0.18);
+      background: #fff4de;
+      color: #8a4a0d;
+      font-weight: 600;
+    }
+
+    .alert.is-visible {
+      display: block;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .field {
+      display: grid;
+      gap: 0.45rem;
+    }
+
+    .field-full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .field-note {
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.45;
+    }
+
+    input,
+    select {
+      width: 100%;
+      min-height: 3.2rem;
+      padding: 0.82rem 0.95rem;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(33, 29, 25, 0.12);
+      background: var(--surface);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: rgba(217, 104, 65, 0.65);
+      box-shadow: 0 0 0 4px rgba(217, 104, 65, 0.12);
+      background: #fff;
+    }
+
+    select[multiple] {
+      min-height: 12rem;
+      padding-top: 0.6rem;
+      padding-bottom: 0.6rem;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .collaborator-picker {
+      padding: 1rem;
+      border: 1px solid rgba(33, 29, 25, 0.1);
+      border-radius: 1.1rem;
+      background: linear-gradient(180deg, rgba(255, 251, 247, 0.95), rgba(255, 245, 238, 0.9));
+    }
+
+    .picker-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.85rem;
+      flex-wrap: wrap;
+    }
+
+    .picker-count {
+      font-weight: 700;
+      color: var(--accent-dark);
+    }
+
+    .chip-row {
+      display: flex;
+      gap: 0.55rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.85rem;
+      min-height: 1.5rem;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.42rem 0.8rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+
+    .chip-empty {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .collaborator-list {
+      display: grid;
+      gap: 0.75rem;
+      max-height: 18rem;
+      overflow: auto;
+      padding-right: 0.2rem;
+    }
+
+    .collaborator-card {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.9rem;
+      align-items: start;
+      padding: 0.9rem 1rem;
+      border: 1px solid rgba(33, 29, 25, 0.1);
+      border-radius: 1rem;
+      background: rgba(255, 255, 255, 0.88);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+      cursor: pointer;
+    }
+
+    .collaborator-card:hover {
+      transform: translateY(-1px);
+      border-color: rgba(217, 104, 65, 0.34);
+      box-shadow: 0 10px 20px rgba(83, 52, 30, 0.08);
+    }
+
+    .collaborator-card.is-selected {
+      border-color: rgba(217, 104, 65, 0.52);
+      background: #fffaf5;
+      box-shadow: 0 10px 24px rgba(217, 104, 65, 0.1);
+    }
+
+    .collaborator-card input[type="checkbox"] {
+      width: 1.15rem;
+      height: 1.15rem;
+      min-height: 1.15rem;
+      margin-top: 0.18rem;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .collaborator-name {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 0.12rem;
+    }
+
+    .collaborator-email {
+      color: var(--muted);
+      word-break: break-word;
+    }
+
+    .picker-empty {
+      padding: 1rem;
+      border-radius: 1rem;
+      border: 1px dashed rgba(33, 29, 25, 0.16);
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.58);
+      text-align: center;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 920px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page-shell {
+        width: min(100% - 1rem, 1120px);
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .card-heading {
+        flex-direction: column;
+      }
+
+      .actions,
+      .nav-actions {
+        width: 100%;
+      }
+
+      .actions .btn,
+      .nav-actions .btn {
+        flex: 1 1 100%;
+      }
+    }
+  </style>
 </head>
 <body>
-  <nav class="navbar navbar-dark bg-dark px-4 mb-4">
-    <span class="navbar-brand">Create Event</span>
-    <div>
-      <a href="organizer_profile.php" class="btn btn-light me-2">Back to Profile</a>
-      <a href="logout.php" class="btn btn-outline-light">Log Out</a>
-    </div>
-  </nav>
+  <div class="page-shell">
+    <header class="topbar">
+      <a href="events.html" class="brand" aria-label="Go to events page">
+        <span class="brand-mark">E</span>
+        <span>Event Booking</span>
+      </a>
+      <div class="nav-actions">
+        <a href="organizer_profile.php" class="btn btn-secondary">Back to Profile</a>
+        <a href="logout.php" class="btn btn-ghost">Log Out</a>
+      </div>
+    </header>
 
-  <div class="container mt-5">
-    <h2>Create New Event</h2>
-    <form id="create-event-form" action="create_event.php" method="POST">
-      <div class="mb-3">
-        <label for="title">Title</label>
-        <input type="text" name="title" id="title" class="form-control" required />
-      </div>
-      <div class="mb-3">
-        <label for="type">Type</label>
-        <input type="text" name="type" id="type" class="form-control" required />
-      </div>
-      <div class="mb-3">
-        <label for="date">Date</label>
-        <input type="date" name="date" id="date" class="form-control" required />
-      </div>
-      <div class="mb-3">
-        <label for="location">Location</label>
-        <input type="text" name="location" id="location" class="form-control" required />
-      </div>
+    <main class="hero">
+      <section class="intro">
+        <div>
+          <span class="eyebrow">Organizer Studio</span>
+          <h1>Create an event that looks ready from day one.</h1>
+          <p>Use a clean title, choose the right type, and add collaborators only when they are truly involved. This form keeps things simple so publishing stays quick.</p>
+        </div>
 
-      <div class="mb-3">
-        <label for="collaborators">Collaborators (optional)</label>
-        <select name="collaborators[]" id="collaborators" class="form-select" multiple>
-          <!-- Filled dynamically -->
-        </select>
-        <div class="form-text">Hold Ctrl (or Cmd) to select multiple organizers</div>
-      </div>
+        <div class="tips" aria-label="Event creation tips">
+          <div class="tip">
+            <strong>Keep the title clear</strong>
+            Short, specific event names are easier for attendees to scan and remember.
+          </div>
+          <div class="tip">
+            <strong>Match the event type</strong>
+            Use consistent labels like workshop, conference, meetup, or concert.
+          </div>
+          <div class="tip">
+            <strong>Add collaborators carefully</strong>
+            Select only organizers who should appear as shared creators for this event.
+          </div>
+        </div>
+      </section>
 
-      <div class="d-grid">
-        <button type="submit" class="btn btn-primary">Create Event</button>
-      </div>
-    </form>
+      <section class="form-card">
+        <div class="card-heading">
+          <div>
+            <h2>Create New Event</h2>
+            <p>All required details in one place, with optional collaborators below.</p>
+          </div>
+          <span class="status-badge">Organizer Only</span>
+        </div>
+
+        <div id="accessMessage" class="alert" role="alert"></div>
+
+        <form id="create-event-form" action="create_event.php" method="POST">
+          <div class="form-grid">
+            <div class="field">
+              <label for="title">Event Title</label>
+              <input type="text" name="title" id="title" placeholder="Summer Tech Meetup" required />
+            </div>
+
+            <div class="field">
+              <label for="type">Event Type</label>
+              <input type="text" name="type" id="type" placeholder="Workshop, Concert, Conference" required />
+            </div>
+
+            <div class="field">
+              <label for="date">Event Date</label>
+              <input type="date" name="date" id="date" required />
+            </div>
+
+            <div class="field">
+              <label for="location">Location</label>
+              <input type="text" name="location" id="location" placeholder="Dhaka Convention Hall" required />
+            </div>
+
+            <div class="field field-full">
+              <label for="collaborators">Collaborators</label>
+              <select name="collaborators[]" id="collaborators" multiple class="sr-only"></select>
+              <div class="collaborator-picker">
+                <div class="picker-topbar">
+                  <input type="search" id="collaboratorSearch" placeholder="Search by name or email" autocomplete="off" />
+                  <div id="selectedCount" class="picker-count">0 selected</div>
+                </div>
+                <div id="selectedChips" class="chip-row">
+                  <span class="chip-empty">No collaborators selected yet.</span>
+                </div>
+                <div id="collaboratorList" class="collaborator-list">
+                  <div class="picker-empty">Loading collaborators...</div>
+                </div>
+              </div>
+              <div class="field-note">Optional. Search and tick organizers you want to invite. They will receive a request before the event appears in their organizer dashboard.</div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <a href="organizer_profile.php" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">Create Event</button>
+          </div>
+        </form>
+      </section>
+    </main>
   </div>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      fetch('create_event.php?fetch_organizers=1')
+      const form = document.getElementById('create-event-form');
+      const message = document.getElementById('accessMessage');
+      const select = document.getElementById('collaborators');
+      const dateInput = document.getElementById('date');
+      const collaboratorSearch = document.getElementById('collaboratorSearch');
+      const collaboratorList = document.getElementById('collaboratorList');
+      const selectedCount = document.getElementById('selectedCount');
+      const selectedChips = document.getElementById('selectedChips');
+
+      const collaborators = [];
+
+      dateInput.min = new Date().toISOString().split('T')[0];
+      select.innerHTML = '<option disabled>Loading collaborators...</option>';
+
+      function updateSelectedSummary() {
+        const selected = collaborators.filter(collaborator => collaborator.selected);
+        selectedCount.textContent = `${selected.length} selected`;
+        selectedChips.innerHTML = '';
+
+        if (selected.length === 0) {
+          selectedChips.innerHTML = '<span class="chip-empty">No collaborators selected yet.</span>';
+          return;
+        }
+
+        selected.forEach(collaborator => {
+          const chip = document.createElement('span');
+          chip.className = 'chip';
+          chip.textContent = collaborator.name;
+          selectedChips.appendChild(chip);
+        });
+      }
+
+      function syncSelectOptions() {
+        Array.from(select.options).forEach(option => {
+          const collaborator = collaborators.find(item => String(item.id) === option.value);
+          option.selected = Boolean(collaborator && collaborator.selected);
+        });
+      }
+
+      function renderCollaboratorList(filterText = '') {
+        const query = filterText.trim().toLowerCase();
+        collaboratorList.innerHTML = '';
+
+        const filtered = collaborators.filter(collaborator =>
+          collaborator.name.toLowerCase().includes(query) ||
+          collaborator.email.toLowerCase().includes(query)
+        );
+
+        if (filtered.length === 0) {
+          collaboratorList.innerHTML = '<div class="picker-empty">No collaborators match your search.</div>';
+          return;
+        }
+
+        filtered.forEach(collaborator => {
+          const item = document.createElement('label');
+          item.className = `collaborator-card${collaborator.selected ? ' is-selected' : ''}`;
+
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.checked = collaborator.selected;
+          checkbox.addEventListener('change', () => {
+            collaborator.selected = checkbox.checked;
+            item.classList.toggle('is-selected', collaborator.selected);
+            syncSelectOptions();
+            updateSelectedSummary();
+          });
+
+          const content = document.createElement('div');
+          content.innerHTML = `
+            <span class="collaborator-name">${collaborator.name}</span>
+            <span class="collaborator-email">${collaborator.email}</span>
+          `;
+
+          item.appendChild(checkbox);
+          item.appendChild(content);
+          collaboratorList.appendChild(item);
+        });
+      }
+
+      collaboratorSearch.addEventListener('input', event => {
+        renderCollaboratorList(event.target.value);
+      });
+
+      fetch('get_session.php')
+        .then(res => res.json())
+        .then(session => {
+          if (session.role !== 'organizer') {
+            form.hidden = true;
+            message.classList.add('is-visible');
+            message.textContent = 'Only organizers can create events.';
+            setTimeout(() => {
+              window.location.href = session.role ? 'events.html' : 'login.php';
+            }, 1800);
+            throw new Error('UNAUTHORIZED_CREATE_EVENT_PAGE');
+          }
+
+          return fetch('create_event.php?fetch_organizers=1');
+        })
         .then(res => res.json())
         .then(data => {
-          const select = document.getElementById('collaborators');
-          if (!Array.isArray(data)) {
-            select.innerHTML = '<option disabled>Error loading collaborators</option>';
+          if (!Array.isArray(data) || data.length === 0) {
+            select.innerHTML = '<option disabled>No additional organizers available</option>';
+            collaboratorList.innerHTML = '<div class="picker-empty">No additional organizers available right now.</div>';
             return;
           }
+
+          select.innerHTML = '';
+          collaborators.length = 0;
 
           data.forEach(org => {
             const option = document.createElement('option');
             option.value = org.organizer_id;
             option.textContent = `${org.first_name} ${org.last_name} (${org.email})`;
             select.appendChild(option);
+            collaborators.push({
+              id: org.organizer_id,
+              name: `${org.first_name} ${org.last_name}`,
+              email: org.email,
+              selected: false
+            });
           });
+
+          renderCollaboratorList();
+          updateSelectedSummary();
         })
         .catch(err => {
+          if (err.message === 'UNAUTHORIZED_CREATE_EVENT_PAGE') {
+            return;
+          }
+
           console.error(err);
-          const select = document.getElementById('collaborators');
           select.innerHTML = '<option disabled>Failed to load collaborators</option>';
+          collaboratorList.innerHTML = '<div class="picker-empty">Failed to load collaborators.</div>';
         });
     });
   </script>

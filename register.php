@@ -1,12 +1,5 @@
 <?php
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path' => '/',
-    'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
-    'httponly' => true,
-    'samesite' => 'Lax'
-]);
-session_start();
+require_once 'session_bootstrap.php';
 require_once 'db.php';
 
 $allowedRoles = ['attendee', 'organizer'];
@@ -132,16 +125,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     $stmt = $pdo->prepare('INSERT INTO Organizer (user_id, organizer_id, is_admin) VALUES (?, ?, 0)');
                     $stmt->execute([$userId, $organizerId]);
+
+                    session_regenerate_id(true);
+                    $_SESSION['user_id'] = $userId;
+                    $_SESSION['role'] = 'organizer';
+                    $_SESSION['organizer_id'] = $organizerId;
+                    $_SESSION['attendee_id'] = null;
+                    $_SESSION['is_admin'] = 0;
                 } else {
                     $stmt = $pdo->query('SELECT COALESCE(MAX(attendee_id), 2000) + 1 FROM Attendee');
                     $attendeeId = (int) $stmt->fetchColumn();
 
                     $stmt = $pdo->prepare('INSERT INTO Attendee (user_id, attendee_id) VALUES (?, ?)');
                     $stmt->execute([$userId, $attendeeId]);
+
+                    session_regenerate_id(true);
+                    $_SESSION['user_id'] = $userId;
+                    $_SESSION['role'] = 'attendee';
+                    $_SESSION['attendee_id'] = $attendeeId;
+                    $_SESSION['organizer_id'] = null;
+                    $_SESSION['is_admin'] = 0;
                 }
 
                 $pdo->commit();
-                header('Location: login.php?registered=1');
+                if ($formData['role'] === 'organizer') {
+                    header('Location: organizer_profile.php');
+                } else {
+                    header('Location: attendee_profile.php');
+                }
                 exit;
             }
         } catch (PDOException $e) {

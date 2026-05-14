@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once 'session_bootstrap.php';
 require('db.php');
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'organizer' || $_SESSION['is_admin'] != 1) {

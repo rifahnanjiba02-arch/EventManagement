@@ -1,6 +1,9 @@
 <?php
 require 'db.php';
-session_start();
+require_once 'session_bootstrap.php';
+require_once 'collaboration_schema.php';
+
+ensureCollaborationSchema($pdo);
 
 header('Content-Type: application/json');
 
@@ -82,7 +85,6 @@ if (!$currentOrganizer) {
 try {
     $pdo->beginTransaction();
 
-    
     $stmt = $pdo->prepare("INSERT INTO EventDetails (title, type, event_date, location) VALUES (?, ?, ?, ?)");
     $stmt->execute([$title, $type, $date, $location]);
     $event_id = $pdo->lastInsertId();
@@ -91,15 +93,37 @@ try {
     $stmtLink = $pdo->prepare("INSERT INTO create_event (organizer_id, event_id) VALUES (?, ?)");
     $stmtLink->execute([$currentOrganizer['organizer_id'], $event_id]);
 
-    // Link collaborators if any
+    // Create pending collaborator requests if any
     if (!empty($_POST['collaborators']) && is_array($_POST['collaborators'])) {
+        $requestStmt = $pdo->prepare("
+            INSERT INTO event_collaboration_requests (event_id, invited_organizer_id, invited_by_organizer_id)
+            VALUES (?, ?, ?)
+        ");
+
+        $inviteeUserStmt = $pdo->prepare("SELECT user_id FROM Organizer WHERE organizer_id = ?");
+
         foreach ($_POST['collaborators'] as $collaborator_id) {
             $collab_id = (int)$collaborator_id;
             if ($collab_id !== (int)$currentOrganizer['organizer_id']) {
                 $check = $pdo->prepare("SELECT 1 FROM Organizer WHERE organizer_id = ?");
                 $check->execute([$collab_id]);
                 if ($check->fetch()) {
-                    $stmtLink->execute([$collab_id, $event_id]);
+                    $requestStmt->execute([$event_id, $collab_id, $currentOrganizer['organizer_id']]);
+                    $requestId = (int)$pdo->lastInsertId();
+
+                    $inviteeUserStmt->execute([$collab_id]);
+                    $inviteeUser = $inviteeUserStmt->fetch(PDO::FETCH_ASSOC);
+
+                    if ($inviteeUser) {
+                        createNotification(
+                            $pdo,
+                            (int)$inviteeUser['user_id'],
+                            'collaboration_request',
+                            sprintf('You have been invited to collaborate on "%s".', $title),
+                            (int)$event_id,
+                            $requestId
+                        );
+                    }
                 }
             }
         }

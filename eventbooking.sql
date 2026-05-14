@@ -139,6 +139,22 @@ INSERT INTO `create_event` (`organizer_id`, `event_id`) VALUES
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `event_collaboration_requests`
+--
+
+CREATE TABLE `event_collaboration_requests` (
+  `request_id` int(11) NOT NULL,
+  `event_id` int(11) NOT NULL,
+  `invited_organizer_id` int(11) NOT NULL,
+  `invited_by_organizer_id` int(11) NOT NULL,
+  `status` enum('pending','accepted','declined') NOT NULL DEFAULT 'pending',
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `responded_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `eventdetails`
 --
 
@@ -191,6 +207,23 @@ INSERT INTO `feedback` (`feedback_id`, `event_id`, `attendee_id`, `rating`, `com
 (3, 9, 2025, 4, '', '2025-08-10 20:15:55'),
 (4, 9, 2023, 5, 'very interesting', '2025-08-10 20:21:45'),
 (6, 9, 2014, 5, '', '2025-08-11 13:36:00');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `notifications`
+--
+
+CREATE TABLE `notifications` (
+  `notification_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `type` varchar(50) NOT NULL,
+  `message` text NOT NULL,
+  `is_read` tinyint(1) NOT NULL DEFAULT 0,
+  `related_event_id` int(11) DEFAULT NULL,
+  `related_request_id` int(11) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -335,6 +368,15 @@ ALTER TABLE `eventdetails`
   ADD PRIMARY KEY (`event_id`);
 
 --
+-- Indexes for table `event_collaboration_requests`
+--
+ALTER TABLE `event_collaboration_requests`
+  ADD PRIMARY KEY (`request_id`),
+  ADD UNIQUE KEY `uniq_event_invited_organizer` (`event_id`,`invited_organizer_id`),
+  ADD KEY `idx_invited_organizer_status` (`invited_organizer_id`,`status`),
+  ADD KEY `idx_invited_by_organizer` (`invited_by_organizer_id`);
+
+--
 -- Indexes for table `feedback`
 --
 ALTER TABLE `feedback`
@@ -342,6 +384,15 @@ ALTER TABLE `feedback`
   ADD UNIQUE KEY `feedback_id` (`feedback_id`),
   ADD UNIQUE KEY `event_id` (`event_id`,`attendee_id`),
   ADD KEY `attendee_id` (`attendee_id`);
+
+--
+-- Indexes for table `notifications`
+--
+ALTER TABLE `notifications`
+  ADD PRIMARY KEY (`notification_id`),
+  ADD KEY `idx_notifications_user` (`user_id`,`is_read`,`created_at`),
+  ADD KEY `idx_notifications_request` (`related_request_id`),
+  ADD KEY `related_event_id` (`related_event_id`);
 
 --
 -- Indexes for table `organizer`
@@ -380,10 +431,22 @@ ALTER TABLE `eventdetails`
   MODIFY `event_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
+-- AUTO_INCREMENT for table `event_collaboration_requests`
+--
+ALTER TABLE `event_collaboration_requests`
+  MODIFY `request_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `feedback`
 --
 ALTER TABLE `feedback`
   MODIFY `feedback_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- AUTO_INCREMENT for table `notifications`
+--
+ALTER TABLE `notifications`
+  MODIFY `notification_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -421,6 +484,22 @@ ALTER TABLE `create_event`
 ALTER TABLE `feedback`
   ADD CONSTRAINT `feedback_ibfk_1` FOREIGN KEY (`event_id`) REFERENCES `eventdetails` (`event_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `feedback_ibfk_2` FOREIGN KEY (`attendee_id`) REFERENCES `attendee` (`attendee_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `event_collaboration_requests`
+--
+ALTER TABLE `event_collaboration_requests`
+  ADD CONSTRAINT `ecr_event_fk` FOREIGN KEY (`event_id`) REFERENCES `eventdetails` (`event_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `ecr_invited_by_organizer_fk` FOREIGN KEY (`invited_by_organizer_id`) REFERENCES `organizer` (`organizer_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `ecr_invited_organizer_fk` FOREIGN KEY (`invited_organizer_id`) REFERENCES `organizer` (`organizer_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `notifications`
+--
+ALTER TABLE `notifications`
+  ADD CONSTRAINT `notifications_event_fk` FOREIGN KEY (`related_event_id`) REFERENCES `eventdetails` (`event_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `notifications_request_fk` FOREIGN KEY (`related_request_id`) REFERENCES `event_collaboration_requests` (`request_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `notifications_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `organizer`
