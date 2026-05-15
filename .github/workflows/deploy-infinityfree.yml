@@ -1,0 +1,24 @@
+name: Deploy to InfinityFree
+
+on:
+  push:
+    branches:
+      - main # Change this to 'master' if your main branch is called master
+
+jobs:
+  web-deploy:
+    name: "\U0001F389 Deploying Latest Code"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "\U0001F69A Get latest code"
+        uses: actions/checkout@v4
+
+      - name: "\U0001F4C2 Sync files via FTP"
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./
+          server-dir: ./htdocs/ # InfinityFree public folder
