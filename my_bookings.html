@@ -612,8 +612,7 @@
   </div>
 
   <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    let attendeeId = urlParams.get('attendee_id');
+    let attendeeId = null;
 
     const bookingsContainer = document.getElementById('bookingsContainer');
     const pageMessage = document.getElementById('pageMessage');
@@ -624,19 +623,12 @@
     renderLoadingState();
 
     async function ensureAttendeeSession() {
-      if (attendeeId) {
-        return true;
-      }
-
       try {
         const response = await fetch('get_session.php');
         const session = await response.json();
 
         if (session.role === 'attendee' && session.attendee_id) {
           attendeeId = session.attendee_id;
-          const nextUrl = new URL(window.location.href);
-          nextUrl.searchParams.set('attendee_id', attendeeId);
-          window.history.replaceState({}, '', nextUrl);
           return true;
         }
       } catch (error) {
@@ -689,7 +681,7 @@
       renderLoadingState();
 
       try {
-        const response = await fetch(`get_bookings.php?attendee_id=${encodeURIComponent(attendeeId)}`);
+        const response = await fetch('get_bookings.php');
         if (!response.ok) {
           throw new Error('Failed to fetch bookings');
         }
@@ -750,8 +742,11 @@
       const attendance = normalizeAttendance(booking.attendance);
       const dateContext = getDateContext(booking.date, status);
       const isToday = dateContext.state === 'today';
+      const isFutureEvent = ['tomorrow', 'upcoming'].includes(dateContext.state);
+      const hasEventEnded = dateContext.state === 'past';
       const canCheckIn = status === 'confirmed' && attendance === 'pending' && isToday;
-      const canCancel = status === 'confirmed' && attendance !== 'checked_in';
+      const canCancel = status === 'confirmed' && attendance !== 'checked_in' && isFutureEvent;
+      const canLeaveFeedback = status === 'confirmed' && (attendance === 'checked_in' || hasEventEnded);
       const cardStateClass = status === 'cancelled'
         ? 'cancelled'
         : dateContext.state === 'past'
@@ -809,7 +804,7 @@
             <div class="booking-note">${escapeHtml(getBookingNote(status, attendance, dateContext, canCheckIn))}</div>
             <div class="booking-actions">
               ${canCheckIn ? `<button class="btn btn-success" data-action="check-in" data-event-id="${escapeHtml(String(booking.event_id))}">Check In</button>` : ''}
-              ${status === 'confirmed' ? `<button class="btn btn-secondary" data-action="feedback" data-event-name="${escapeHtml(booking.event || '')}">Leave Feedback</button>` : ''}
+              ${canLeaveFeedback ? `<button class="btn btn-secondary" data-action="feedback" data-event-name="${escapeHtml(booking.event || '')}">Leave Feedback</button>` : ''}
               ${canCancel ? `<button class="btn btn-danger" data-action="cancel-booking" data-event-id="${escapeHtml(String(booking.event_id))}">Cancel Booking</button>` : ''}
             </div>
           </div>
@@ -851,7 +846,6 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            attendee_id: parseInt(attendeeId, 10),
             event_id: eventId,
             attendance_status: 'checked_in'
           })
@@ -886,7 +880,7 @@
         const response = await fetch('cancel_booking.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ event_id: eventId, attendee_id: parseInt(attendeeId, 10) })
+          body: JSON.stringify({ event_id: eventId })
         });
         const result = await response.json();
 
@@ -937,6 +931,10 @@
 
       if (dateContext.state === 'past') {
         return 'The event date has passed, so live attendance actions are closed.';
+      }
+
+      if (dateContext.state === 'today') {
+        return 'This booking is locked for today, so cancellation is no longer available.';
       }
 
       return 'Your booking is still active and ready for the event date.';

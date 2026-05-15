@@ -336,7 +336,7 @@ $socialLinks = array_values(array_filter([
         <div class="d-flex gap-2 flex-wrap">
           <a href="index.html" class="btn btn-outline-light">Home</a>
           <a href="events.html" class="btn btn-light">Browse Events</a>
-          <a href="my_bookings.html?attendee_id=<?= urlencode($profile['attendee_id']) ?>" class="btn btn-outline-light">My Bookings</a>
+          <a href="my_bookings.html" class="btn btn-outline-light">My Bookings</a>
           <a href="logout.php" class="btn btn-outline-warning">Log Out</a>
         </div>
       </div>
@@ -463,7 +463,7 @@ $socialLinks = array_values(array_filter([
           </div>
           <div class="quick-actions">
             <a href="events.html" class="btn btn-primary">Explore Events</a>
-            <a href="my_bookings.html?attendee_id=<?= urlencode($profile['attendee_id']) ?>" class="btn btn-outline-secondary">Review Bookings</a>
+            <a href="my_bookings.html" class="btn btn-outline-secondary">Review Bookings</a>
           </div>
         </div>
       </div>

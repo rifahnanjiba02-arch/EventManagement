@@ -1,15 +1,16 @@
 <?php
 
+require_once 'session_bootstrap.php';
 header('Content-Type: application/json');
 require 'db.php';
 
-if (!isset($_GET['attendee_id'])) {
-    http_response_code(400);
-    echo json_encode(["error" => "Missing attendee ID"]);
+if (($_SESSION['role'] ?? null) !== 'attendee' || !isset($_SESSION['attendee_id'])) {
+    http_response_code(401);
+    echo json_encode(["error" => "Please log in as an attendee"]);
     exit;
 }
 
-$attendee_id = intval($_GET['attendee_id']);
+$attendee_id = (int) $_SESSION['attendee_id'];
 
 $sql = "
 SELECT 
@@ -17,6 +18,8 @@ SELECT
     e.title AS event, 
     e.event_date AS date, 
     e.location, 
+    b.booking_time,
+    b.cancellation_time,
     b.status, 
     b.attendance_status AS attendance,
     (SELECT COUNT(*) FROM Booking WHERE event_id = e.event_id) AS total_participants

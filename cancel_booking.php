@@ -1,22 +1,34 @@
 <?php
+require_once 'session_bootstrap.php';
 header('Content-Type: application/json');
 require 'db.php';
 
 // Decode JSON from request body
 $input = json_decode(file_get_contents('php://input'), true);
 
-if (!$input || !isset($input['event_id'], $input['attendee_id'])) {
+if (($_SESSION['role'] ?? null) !== 'attendee' || !isset($_SESSION['attendee_id'])) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'error' => 'Please log in as an attendee']);
+    exit;
+}
+
+if (!$input || !isset($input['event_id'])) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Missing event_id or attendee_id']);
+    echo json_encode(['success' => false, 'error' => 'Missing event_id']);
     exit;
 }
 
 $event_id = intval($input['event_id']);
-$attendee_id = intval($input['attendee_id']);
+$attendee_id = (int) $_SESSION['attendee_id'];
 
 try {
-    // Check if booking exists and is currently confirmed
-    $check = $pdo->prepare("SELECT status FROM Booking WHERE event_id = ? AND attendee_id = ?");
+    // Check if booking exists and whether it is still eligible for cancellation.
+    $check = $pdo->prepare("
+        SELECT b.status, b.attendance_status, e.event_date
+        FROM Booking b
+        JOIN EventDetails e ON e.event_id = b.event_id
+        WHERE b.event_id = ? AND b.attendee_id = ?
+    ");
     $check->execute([$event_id, $attendee_id]);
     $booking = $check->fetch(PDO::FETCH_ASSOC);
 
@@ -28,6 +40,26 @@ try {
 
     if ($booking['status'] === 'cancelled') {
         echo json_encode(['success' => false, 'error' => 'Booking already cancelled']);
+        exit;
+    }
+
+    if ($booking['status'] !== 'confirmed') {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => 'Only confirmed bookings can be cancelled']);
+        exit;
+    }
+
+    if (($booking['attendance_status'] ?? 'pending') === 'checked_in') {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => 'Checked-in bookings cannot be cancelled']);
+        exit;
+    }
+
+    $eventDate = new DateTime($booking['event_date']);
+    $today = new DateTime('today');
+    if ($eventDate->format('Y-m-d') <= $today->format('Y-m-d')) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => 'Only future bookings can be cancelled']);
         exit;
     }
 
