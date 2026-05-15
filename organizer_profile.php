@@ -16,6 +16,39 @@ $user_id = (int)$_SESSION['user_id'];
 $dashboardNotice = $_SESSION['organizer_notice'] ?? null;
 unset($_SESSION['organizer_notice']);
 
+function finalizeEventCancellation(PDO $pdo, int $eventId, int $actorOrganizerId, string $eventTitle, string $cancellationReason): void
+{
+    $cancelStmt = $pdo->prepare("
+        UPDATE EventDetails
+        SET event_status = 'cancelled',
+            cancellation_reason = ?,
+            cancellation_time = NOW(),
+            cancelled_by_organizer_id = ?
+        WHERE event_id = ?
+    ");
+    $cancelStmt->execute([$cancellationReason, $actorOrganizerId, $eventId]);
+
+    $attendeeStmt = $pdo->prepare("
+        SELECT DISTINCT u.user_id
+        FROM Booking b
+        JOIN Attendee a ON a.attendee_id = b.attendee_id
+        JOIN Users u ON u.user_id = a.user_id
+        WHERE b.event_id = ? AND b.status = 'confirmed'
+    ");
+    $attendeeStmt->execute([$eventId]);
+    $attendeeUserIds = $attendeeStmt->fetchAll(PDO::FETCH_COLUMN);
+
+    foreach ($attendeeUserIds as $attendeeUserId) {
+        createNotification(
+            $pdo,
+            (int) $attendeeUserId,
+            'event_cancelled',
+            sprintf('"%s" was cancelled by the organizer. Reason: %s', $eventTitle, $cancellationReason),
+            $eventId
+        );
+    }
+}
+
 try {
     $stmt = $pdo->prepare("
         SELECT u.first_name, u.last_name, u.email, up.bio, up.profile_picture,
@@ -121,6 +154,147 @@ try {
         exit;
     }
 
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['respond_cancellation_request'], $_POST['approval_id'], $_POST['decision'])) {
+        $approvalId = (int) $_POST['approval_id'];
+        $decision = $_POST['decision'] === 'approve' ? 'approved' : 'declined';
+
+        $pdo->beginTransaction();
+
+        $approvalStmt = $pdo->prepare("
+            SELECT
+                eca.approval_id,
+                eca.batch_id,
+                eca.status AS approval_status,
+                ecb.event_id,
+                ecb.requested_by_organizer_id,
+                ecb.cancellation_reason,
+                ecb.status AS batch_status,
+                e.title,
+                requester.user_id AS requester_user_id,
+                requester_user.first_name AS requester_first_name,
+                requester_user.last_name AS requester_last_name
+            FROM event_cancellation_approvals eca
+            JOIN event_cancellation_batches ecb ON ecb.batch_id = eca.batch_id
+            JOIN EventDetails e ON e.event_id = ecb.event_id
+            JOIN Organizer requester ON requester.organizer_id = ecb.requested_by_organizer_id
+            JOIN Users requester_user ON requester_user.user_id = requester.user_id
+            WHERE eca.approval_id = ? AND eca.organizer_id = ?
+            FOR UPDATE
+        ");
+        $approvalStmt->execute([$approvalId, $organizerId]);
+        $approvalRequest = $approvalStmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$approvalRequest || $approvalRequest['approval_status'] !== 'pending' || $approvalRequest['batch_status'] !== 'pending') {
+            $pdo->rollBack();
+            $_SESSION['organizer_notice'] = [
+                'type' => 'warning',
+                'message' => 'That cancellation request is no longer pending.'
+            ];
+            header("Location: " . $_SERVER['PHP_SELF']);
+            exit;
+        }
+
+        $updateApprovalStmt = $pdo->prepare("
+            UPDATE event_cancellation_approvals
+            SET status = ?, responded_at = NOW()
+            WHERE approval_id = ?
+        ");
+        $updateApprovalStmt->execute([$decision, $approvalId]);
+
+        $markReadStmt = $pdo->prepare("
+            UPDATE notifications
+            SET is_read = 1
+            WHERE user_id = ? AND related_event_id = ? AND type = 'event_cancellation_request'
+        ");
+        $markReadStmt->execute([$user_id, (int) $approvalRequest['event_id']]);
+
+        if ($decision === 'declined') {
+            $declineBatchStmt = $pdo->prepare("
+                UPDATE event_cancellation_batches
+                SET status = 'declined', resolved_at = NOW()
+                WHERE batch_id = ?
+            ");
+            $declineBatchStmt->execute([(int) $approvalRequest['batch_id']]);
+
+            createNotification(
+                $pdo,
+                (int) $approvalRequest['requester_user_id'],
+                'event_cancellation_declined',
+                sprintf(
+                    '%s declined your cancellation request for "%s".',
+                    trim($profile['first_name'] . ' ' . $profile['last_name']),
+                    $approvalRequest['title']
+                ),
+                (int) $approvalRequest['event_id']
+            );
+
+            $pdo->commit();
+            $_SESSION['organizer_notice'] = [
+                'type' => 'info',
+                'message' => sprintf('You declined the cancellation request for "%s".', $approvalRequest['title'])
+            ];
+            header("Location: " . $_SERVER['PHP_SELF']);
+            exit;
+        }
+
+        $remainingApprovalsStmt = $pdo->prepare("
+            SELECT COUNT(*)
+            FROM event_cancellation_approvals
+            WHERE batch_id = ? AND status = 'pending'
+        ");
+        $remainingApprovalsStmt->execute([(int) $approvalRequest['batch_id']]);
+        $remainingApprovals = (int) $remainingApprovalsStmt->fetchColumn();
+
+        if ($remainingApprovals === 0) {
+            finalizeEventCancellation(
+                $pdo,
+                (int) $approvalRequest['event_id'],
+                (int) $approvalRequest['requested_by_organizer_id'],
+                $approvalRequest['title'],
+                $approvalRequest['cancellation_reason']
+            );
+
+            $completeBatchStmt = $pdo->prepare("
+                UPDATE event_cancellation_batches
+                SET status = 'completed', resolved_at = NOW()
+                WHERE batch_id = ?
+            ");
+            $completeBatchStmt->execute([(int) $approvalRequest['batch_id']]);
+
+            createNotification(
+                $pdo,
+                (int) $approvalRequest['requester_user_id'],
+                'event_cancellation_completed',
+                sprintf('Your cancellation request for "%s" was approved and the event is now cancelled.', $approvalRequest['title']),
+                (int) $approvalRequest['event_id']
+            );
+
+            $pdo->commit();
+            $_SESSION['organizer_notice'] = [
+                'type' => 'success',
+                'message' => sprintf('You approved the final cancellation request for "%s". The event is now cancelled.', $approvalRequest['title'])
+            ];
+            header("Location: " . $_SERVER['PHP_SELF']);
+            exit;
+        }
+
+        createNotification(
+            $pdo,
+            (int) $approvalRequest['requester_user_id'],
+            'event_cancellation_approved',
+            sprintf('One collaborator approved your cancellation request for "%s".', $approvalRequest['title']),
+            (int) $approvalRequest['event_id']
+        );
+
+        $pdo->commit();
+        $_SESSION['organizer_notice'] = [
+            'type' => 'success',
+            'message' => sprintf('You approved the cancellation request for "%s".', $approvalRequest['title'])
+        ];
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit;
+    }
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_event'], $_POST['event_id'])) {
         $eventId = (int) $_POST['event_id'];
         $cancellationReason = trim($_POST['cancellation_reason'] ?? '');
@@ -137,10 +311,12 @@ try {
         $pdo->beginTransaction();
 
         $eventStmt = $pdo->prepare("
-            SELECT e.event_id, e.title, e.event_date, e.event_status
+            SELECT e.event_id, e.title, e.event_date, e.event_status, COUNT(ce_all.organizer_id) AS organizer_count
             FROM EventDetails e
             JOIN create_event ce ON ce.event_id = e.event_id
+            JOIN create_event ce_all ON ce_all.event_id = e.event_id
             WHERE e.event_id = ? AND ce.organizer_id = ?
+            GROUP BY e.event_id, e.title, e.event_date, e.event_status
             LIMIT 1
             FOR UPDATE
         ");
@@ -177,34 +353,73 @@ try {
             exit;
         }
 
-        $cancelStmt = $pdo->prepare("
-            UPDATE EventDetails
-            SET event_status = 'cancelled',
-                cancellation_reason = ?,
-                cancellation_time = NOW()
-            WHERE event_id = ?
-        ");
-        $cancelStmt->execute([$cancellationReason, $eventId]);
+        if ((int) $eventToCancel['organizer_count'] > 1) {
+            $existingPendingBatchStmt = $pdo->prepare("
+                SELECT COUNT(*)
+                FROM event_cancellation_batches
+                WHERE event_id = ? AND status = 'pending'
+            ");
+            $existingPendingBatchStmt->execute([$eventId]);
 
-        $attendeeStmt = $pdo->prepare("
-            SELECT DISTINCT u.user_id
-            FROM Booking b
-            JOIN Attendee a ON a.attendee_id = b.attendee_id
-            JOIN Users u ON u.user_id = a.user_id
-            WHERE b.event_id = ? AND b.status = 'confirmed'
-        ");
-        $attendeeStmt->execute([$eventId]);
-        $attendeeUserIds = $attendeeStmt->fetchAll(PDO::FETCH_COLUMN);
+            if ((int) $existingPendingBatchStmt->fetchColumn() > 0) {
+                $pdo->rollBack();
+                $_SESSION['organizer_notice'] = [
+                    'type' => 'warning',
+                    'message' => 'A cancellation approval request is already pending for this event.'
+                ];
+                header("Location: " . $_SERVER['PHP_SELF']);
+                exit;
+            }
 
-        foreach ($attendeeUserIds as $attendeeUserId) {
-            createNotification(
-                $pdo,
-                (int) $attendeeUserId,
-                'event_cancelled',
-                sprintf('"%s" was cancelled by the organizer. Reason: %s', $eventToCancel['title'], $cancellationReason),
-                $eventId
-            );
+            $batchStmt = $pdo->prepare("
+                INSERT INTO event_cancellation_batches (event_id, requested_by_organizer_id, cancellation_reason)
+                VALUES (?, ?, ?)
+            ");
+            $batchStmt->execute([$eventId, $organizerId, $cancellationReason]);
+            $batchId = (int) $pdo->lastInsertId();
+
+            $collaboratorStmt = $pdo->prepare("
+                SELECT o.organizer_id, o.user_id, u.first_name, u.last_name
+                FROM create_event ce
+                JOIN Organizer o ON o.organizer_id = ce.organizer_id
+                JOIN Users u ON u.user_id = o.user_id
+                WHERE ce.event_id = ? AND ce.organizer_id != ?
+            ");
+            $collaboratorStmt->execute([$eventId, $organizerId]);
+            $collaborators = $collaboratorStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $approvalInsertStmt = $pdo->prepare("
+                INSERT INTO event_cancellation_approvals (batch_id, organizer_id)
+                VALUES (?, ?)
+            ");
+
+            foreach ($collaborators as $collaborator) {
+                $approvalInsertStmt->execute([$batchId, (int) $collaborator['organizer_id']]);
+
+                createNotification(
+                    $pdo,
+                    (int) $collaborator['user_id'],
+                    'event_cancellation_request',
+                    sprintf(
+                        '%s requested cancellation approval for "%s". Reason: %s',
+                        trim($profile['first_name'] . ' ' . $profile['last_name']),
+                        $eventToCancel['title'],
+                        $cancellationReason
+                    ),
+                    $eventId
+                );
+            }
+
+            $pdo->commit();
+            $_SESSION['organizer_notice'] = [
+                'type' => 'info',
+                'message' => sprintf('Cancellation approval requests were sent for "%s". The event will cancel after collaborators approve.', $eventToCancel['title'])
+            ];
+            header("Location: " . $_SERVER['PHP_SELF']);
+            exit;
         }
+
+        finalizeEventCancellation($pdo, $eventId, $organizerId, $eventToCancel['title'], $cancellationReason);
 
         $pdo->commit();
         $_SESSION['organizer_notice'] = [
@@ -217,16 +432,73 @@ try {
 
     $eventsStmt = $pdo->prepare("
         SELECT e.event_id, e.title, e.event_date, e.location, e.event_status, e.cancellation_reason,
-               COALESCE(SUM(CASE WHEN b.status = 'confirmed' THEN 1 ELSE 0 END), 0) AS booking_count
+               COUNT(DISTINCT ce_all.organizer_id) AS organizer_count,
+               (
+                   SELECT GROUP_CONCAT(
+                       DISTINCT CONCAT(u_team.first_name, ' ', u_team.last_name)
+                       ORDER BY u_team.first_name, u_team.last_name
+                       SEPARATOR ', '
+                   )
+                   FROM create_event ce_team
+                   JOIN Organizer o_team ON o_team.organizer_id = ce_team.organizer_id
+                   JOIN Users u_team ON u_team.user_id = o_team.user_id
+                   WHERE ce_team.event_id = e.event_id
+               ) AS organizer_names,
+               MAX(CASE WHEN ecb.status = 'pending' THEN 1 ELSE 0 END) AS has_pending_cancellation_request,
+               COUNT(DISTINCT CASE WHEN b.status = 'confirmed' THEN b.booking_id END) AS booking_count
         FROM EventDetails e
         LEFT JOIN Booking b ON e.event_id = b.event_id
         JOIN create_event ce ON e.event_id = ce.event_id
+        JOIN create_event ce_all ON ce_all.event_id = e.event_id
+        LEFT JOIN event_cancellation_batches ecb ON ecb.event_id = e.event_id
         WHERE ce.organizer_id = ?
-        GROUP BY e.event_id
+        GROUP BY e.event_id, e.title, e.event_date, e.location, e.event_status, e.cancellation_reason
         ORDER BY e.event_date DESC
     ");
     $eventsStmt->execute([$organizerId]);
     $events = $eventsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $cancelledEventsCount = 0;
+    $unattributedCancelledEventsCount = 0;
+    $recentCancellationAudit = [];
+
+    if ((int)$profile['is_admin'] === 1) {
+        $cancelledEventsCountStmt = $pdo->query("
+            SELECT COUNT(*)
+            FROM EventDetails
+            WHERE event_status = 'cancelled'
+        ");
+        $cancelledEventsCount = (int) $cancelledEventsCountStmt->fetchColumn();
+
+        $unattributedCancelledEventsCountStmt = $pdo->query("
+            SELECT COUNT(*)
+            FROM EventDetails
+            WHERE event_status = 'cancelled'
+              AND cancelled_by_organizer_id IS NULL
+        ");
+        $unattributedCancelledEventsCount = (int) $unattributedCancelledEventsCountStmt->fetchColumn();
+
+        $recentCancellationAuditStmt = $pdo->query("
+            SELECT
+                e.event_id,
+                e.title,
+                e.event_date,
+                e.cancellation_reason,
+                e.cancellation_time,
+                e.cancelled_by_organizer_id,
+                o.organizer_id,
+                u.first_name,
+                u.last_name,
+                u.email
+            FROM EventDetails e
+            LEFT JOIN Organizer o ON o.organizer_id = e.cancelled_by_organizer_id
+            LEFT JOIN Users u ON u.user_id = o.user_id
+            WHERE e.event_status = 'cancelled'
+            ORDER BY e.cancellation_time DESC, e.event_id DESC
+            LIMIT 8
+        ");
+        $recentCancellationAudit = $recentCancellationAuditStmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 
     $pendingRequestsStmt = $pdo->prepare("
         SELECT ecr.request_id, ecr.created_at, e.title, e.type, e.event_date, e.location,
@@ -243,6 +515,30 @@ try {
     $pendingRequestsStmt->execute([$user_id, $organizerId]);
     $pendingRequests = $pendingRequestsStmt->fetchAll(PDO::FETCH_ASSOC);
 
+    $pendingCancellationApprovalsStmt = $pdo->prepare("
+        SELECT
+            eca.approval_id,
+            ecb.created_at,
+            ecb.cancellation_reason,
+            e.title,
+            e.type,
+            e.event_date,
+            e.location,
+            requester_user.first_name,
+            requester_user.last_name,
+            n.is_read
+        FROM event_cancellation_approvals eca
+        JOIN event_cancellation_batches ecb ON ecb.batch_id = eca.batch_id
+        JOIN EventDetails e ON e.event_id = ecb.event_id
+        JOIN Organizer requester ON requester.organizer_id = ecb.requested_by_organizer_id
+        JOIN Users requester_user ON requester_user.user_id = requester.user_id
+        LEFT JOIN notifications n ON n.related_event_id = e.event_id AND n.user_id = ? AND n.type = 'event_cancellation_request'
+        WHERE eca.organizer_id = ? AND eca.status = 'pending' AND ecb.status = 'pending'
+        ORDER BY ecb.created_at DESC
+    ");
+    $pendingCancellationApprovalsStmt->execute([$user_id, $organizerId]);
+    $pendingCancellationApprovals = $pendingCancellationApprovalsStmt->fetchAll(PDO::FETCH_ASSOC);
+
     $sentRequestsStmt = $pdo->prepare("
         SELECT ecr.request_id, ecr.status, ecr.created_at, ecr.responded_at,
                e.title, invited_user.first_name, invited_user.last_name
@@ -255,6 +551,26 @@ try {
     ");
     $sentRequestsStmt->execute([$organizerId]);
     $sentRequests = $sentRequestsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $sentCancellationRequestsStmt = $pdo->prepare("
+        SELECT
+            ecb.batch_id,
+            ecb.status,
+            ecb.created_at,
+            ecb.resolved_at,
+            e.title,
+            SUM(CASE WHEN eca.status = 'approved' THEN 1 ELSE 0 END) AS approvals_granted,
+            SUM(CASE WHEN eca.status = 'declined' THEN 1 ELSE 0 END) AS approvals_declined,
+            SUM(CASE WHEN eca.status = 'pending' THEN 1 ELSE 0 END) AS approvals_pending
+        FROM event_cancellation_batches ecb
+        JOIN EventDetails e ON e.event_id = ecb.event_id
+        LEFT JOIN event_cancellation_approvals eca ON eca.batch_id = ecb.batch_id
+        WHERE ecb.requested_by_organizer_id = ?
+        GROUP BY ecb.batch_id, ecb.status, ecb.created_at, ecb.resolved_at, e.title
+        ORDER BY ecb.created_at DESC
+    ");
+    $sentCancellationRequestsStmt->execute([$organizerId]);
+    $sentCancellationRequests = $sentCancellationRequestsStmt->fetchAll(PDO::FETCH_ASSOC);
 
     $notificationsStmt = $pdo->prepare("
         SELECT notification_id, type, message, is_read, created_at, related_event_id
@@ -477,6 +793,98 @@ try {
       background: #fff;
       border-color: #fff;
     }
+    .nav-utilities {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .notification-menu {
+      position: relative;
+    }
+    .notification-toggle {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 3rem;
+      height: 3rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.06);
+      color: #fff7f2;
+      transition: background-color 0.2s ease, transform 0.2s ease;
+      cursor: pointer;
+    }
+    .notification-toggle:hover,
+    .notification-toggle:focus {
+      background: rgba(255, 255, 255, 0.14);
+      transform: translateY(-1px);
+    }
+    .notification-badge-dot {
+      position: absolute;
+      top: 0.35rem;
+      right: 0.35rem;
+      min-width: 1.2rem;
+      height: 1.2rem;
+      padding: 0 0.25rem;
+      border-radius: 999px;
+      background: #f3c765;
+      color: #4a3318;
+      font-size: 0.72rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+    .notification-popover {
+      position: absolute;
+      top: calc(100% + 0.85rem);
+      right: 0;
+      width: min(360px, calc(100vw - 2rem));
+      max-height: 430px;
+      overflow: auto;
+      padding: 1rem;
+      border: 1px solid rgba(33, 29, 25, 0.08);
+      border-radius: 1rem;
+      background: rgba(255, 253, 250, 0.98);
+      box-shadow: 0 18px 34px rgba(20, 18, 15, 0.18);
+      backdrop-filter: blur(14px);
+      display: none;
+      z-index: 1080;
+    }
+    .notification-popover.open {
+      display: block;
+    }
+    .notification-popover-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 0.85rem;
+    }
+    .notification-popover-head h5 {
+      margin: 0;
+      font-size: 1rem;
+      color: #1f2933;
+    }
+    .notification-popover-head p {
+      margin: 0.2rem 0 0;
+      color: #6f665e;
+      font-size: 0.9rem;
+    }
+    .notification-popover-list {
+      display: grid;
+      gap: 0.75rem;
+    }
+    .notification-empty {
+      border: 1px dashed rgba(33, 29, 25, 0.12);
+      border-radius: 0.9rem;
+      padding: 0.95rem 1rem;
+      color: #6f665e;
+      background: #fffdfa;
+    }
     .profile-info .mb-3 {
       min-width: 0;
       margin-bottom: 0.7rem !important;
@@ -584,6 +992,11 @@ try {
         align-items: flex-start;
         flex-direction: column;
       }
+      .notification-popover {
+        left: 0;
+        right: auto;
+        width: min(360px, calc(100vw - 2.5rem));
+      }
     }
   </style>
 </head>
@@ -596,12 +1009,59 @@ try {
           <div class="profile-nav-links">
             <a href="#profile-overview">Profile</a>
             <a href="#collaboration-requests">Requests</a>
-            <a href="#notifications">Notifications</a>
             <a href="#sent-invitations">Sent Invites</a>
             <a href="#my-events">My Events</a>
           </div>
         </div>
-        <div class="d-flex gap-2 flex-wrap">
+        <div class="nav-utilities">
+          <div class="notification-menu">
+            <button
+              type="button"
+              class="notification-toggle"
+              id="notificationToggle"
+              aria-label="Open notifications"
+              aria-expanded="false"
+              aria-controls="notificationPopover"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 3.75a4.25 4.25 0 0 0-4.25 4.25v1.08c0 .83-.23 1.65-.66 2.36l-1.19 1.96a1.75 1.75 0 0 0 1.5 2.65h9.22a1.75 1.75 0 0 0 1.5-2.65l-1.19-1.96a4.52 4.52 0 0 1-.66-2.36V8A4.25 4.25 0 0 0 12 3.75Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9.75 18a2.25 2.25 0 0 0 4.5 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <?php if ($unreadCount > 0): ?>
+                <span class="notification-badge-dot"><?= $unreadCount > 9 ? '9+' : $unreadCount ?></span>
+              <?php endif; ?>
+            </button>
+            <div class="notification-popover" id="notificationPopover" role="dialog" aria-label="Notifications">
+              <div class="notification-popover-head">
+                <div>
+                  <h5>Notifications</h5>
+                  <p>Recent activity for collaboration and cancellation workflows.</p>
+                </div>
+                <span class="badge text-bg-primary rounded-pill"><?= $unreadCount ?> unread</span>
+              </div>
+
+              <?php if (count($notifications) === 0): ?>
+                <div class="notification-empty">No notifications yet.</div>
+              <?php else: ?>
+                <div class="notification-popover-list">
+                  <?php foreach ($notifications as $notification): ?>
+                    <div class="notification-card <?= ((int)$notification['is_read'] === 0) ? 'unread' : '' ?>">
+                      <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div>
+                          <div class="fw-semibold"><?= htmlspecialchars($notification['message']) ?></div>
+                          <div class="mini-muted mt-1"><?= htmlspecialchars($notification['created_at']) ?></div>
+                        </div>
+                        <?php if ((int)$notification['is_read'] === 0): ?>
+                          <span class="badge text-bg-danger">New</span>
+                        <?php endif; ?>
+                      </div>
+                    </div>
+                  <?php endforeach; ?>
+                </div>
+              <?php endif; ?>
+            </div>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
           <a href="index.html" class="btn btn-outline-light">Home</a>
           <a href="events.html" class="btn btn-outline-light">Events</a>
           <a href="create_event.html" class="btn btn-light me-2">Create Event</a>
@@ -609,6 +1069,7 @@ try {
           <a href="manage_users.php" class="btn btn-warning me-2">Manage Users</a>
       <?php endif; ?>
           <a href="logout.php" class="btn btn-outline-light">Log Out</a>
+          </div>
         </div>
       </div>
     </div>
@@ -632,7 +1093,7 @@ try {
         </div>
         <div class="stat-card">
           <span class="mini-muted">Pending Requests</span>
-          <strong><?= count($pendingRequests) ?></strong>
+          <strong><?= count($pendingRequests) + count($pendingCancellationApprovals) ?></strong>
         </div>
         <div class="stat-card">
           <span class="mini-muted">Unread Notifications</span>
@@ -709,9 +1170,56 @@ try {
         <div class="section-title">
           <div>
             <h4 class="mb-1">Admin Controls</h4>
-            <p class="mini-muted mb-0">You have elevated access to manage users alongside your organizer workflow.</p>
+            <p class="mini-muted mb-0">You have elevated access to manage users and watch event-cancellation activity for unusual patterns.</p>
           </div>
           <span class="badge text-bg-danger rounded-pill">Admin access enabled</span>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <div class="stat-card h-100">
+              <span class="mini-muted">Cancelled Events</span>
+              <strong><?= $cancelledEventsCount ?></strong>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-card h-100">
+              <span class="mini-muted">Legacy / Unattributed</span>
+              <strong><?= $unattributedCancelledEventsCount ?></strong>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-card h-100">
+              <span class="mini-muted">Attributed Cancellations</span>
+              <strong><?= max(0, $cancelledEventsCount - $unattributedCancelledEventsCount) ?></strong>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="section-card h-100 p-3">
+              <div class="fw-semibold mb-2">Recent cancellation audit</div>
+              <?php if (count($recentCancellationAudit) === 0): ?>
+                <div class="mini-muted">No cancelled events have been recorded yet.</div>
+              <?php else: ?>
+                <div class="list-stack">
+                  <?php foreach ($recentCancellationAudit as $auditItem): ?>
+                    <div class="notification-card">
+                      <div class="fw-semibold"><?= htmlspecialchars($auditItem['title']) ?></div>
+                      <div class="mini-muted mt-1">
+                        Cancelled by
+                        <?= htmlspecialchars(trim(($auditItem['first_name'] ?? '') . ' ' . ($auditItem['last_name'] ?? '')) ?: 'Legacy cancellation') ?>
+                        <?php if (!empty($auditItem['organizer_id'])): ?>
+                          (Organizer #<?= (int) $auditItem['organizer_id'] ?>)
+                        <?php elseif (empty($auditItem['cancelled_by_organizer_id'])): ?>
+                          (not attributable from older data)
+                        <?php endif; ?>
+                        on <?= htmlspecialchars($auditItem['cancellation_time'] ?? 'Unknown time') ?>
+                      </div>
+                      <div class="mini-muted mt-1">Reason: <?= htmlspecialchars($auditItem['cancellation_reason'] ?? 'No reason saved') ?></div>
+                    </div>
+                  <?php endforeach; ?>
+                </div>
+              <?php endif; ?>
+            </div>
+          </div>
         </div>
         <div class="profile-actions">
           <a href="manage_users.php" class="btn btn-danger">Open User Management</a>
@@ -765,32 +1273,42 @@ try {
       </div>
 
       <div class="col-lg-5">
-        <div class="section-card h-100" id="notifications">
+        <div class="section-card h-100">
           <div class="section-title">
             <div>
-              <h4 class="mb-1">Notifications</h4>
-              <p class="mini-muted mb-0">Recent activity for collaboration requests and responses.</p>
+              <h4 class="mb-1">Cancellation Approval Requests</h4>
+              <p class="mini-muted mb-0">Collaborative events need approval from the other organizers before cancellation can go through.</p>
             </div>
-            <span class="badge text-bg-primary rounded-pill"><?= $unreadCount ?> unread</span>
+            <span class="badge text-bg-dark rounded-pill"><?= count($pendingCancellationApprovals) ?> pending</span>
           </div>
 
           <div class="list-stack">
-            <?php if (count($notifications) === 0): ?>
-              <div class="notification-card">
-                <div class="mini-muted">No notifications yet.</div>
+            <?php if (count($pendingCancellationApprovals) === 0): ?>
+              <div class="request-card">
+                <div class="mini-muted">No cancellation approvals are waiting for you right now.</div>
               </div>
             <?php else: ?>
-              <?php foreach ($notifications as $notification): ?>
-                <div class="notification-card <?= ((int)$notification['is_read'] === 0) ? 'unread' : '' ?>">
-                  <div class="d-flex justify-content-between align-items-start gap-2">
+              <?php foreach ($pendingCancellationApprovals as $request): ?>
+                <div class="request-card <?= ((int)($request['is_read'] ?? 0) === 0) ? 'unread' : '' ?>">
+                  <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
                     <div>
-                      <div class="fw-semibold"><?= htmlspecialchars($notification['message']) ?></div>
-                      <div class="mini-muted mt-1"><?= htmlspecialchars($notification['created_at']) ?></div>
+                      <h5 class="mb-1"><?= htmlspecialchars($request['title']) ?></h5>
+                      <div class="mini-muted mb-2">
+                        Requested by <?= htmlspecialchars($request['first_name'] . ' ' . $request['last_name']) ?>
+                        - <?= htmlspecialchars($request['type']) ?>
+                        - <?= htmlspecialchars($request['event_date']) ?>
+                        - <?= htmlspecialchars($request['location']) ?>
+                      </div>
+                      <div class="mini-muted">Reason: <?= htmlspecialchars($request['cancellation_reason']) ?></div>
                     </div>
-                    <?php if ((int)$notification['is_read'] === 0): ?>
-                      <span class="badge text-bg-danger">New</span>
-                    <?php endif; ?>
+                    <span class="badge text-bg-warning">Approval needed</span>
                   </div>
+                  <form method="POST" class="d-flex gap-2 flex-wrap mt-2">
+                    <input type="hidden" name="approval_id" value="<?= (int)$request['approval_id'] ?>" />
+                    <input type="hidden" name="respond_cancellation_request" value="1" />
+                    <button type="submit" name="decision" value="approve" class="btn btn-success btn-sm">Approve</button>
+                    <button type="submit" name="decision" value="decline" class="btn btn-outline-secondary btn-sm">Decline</button>
+                  </form>
                 </div>
               <?php endforeach; ?>
             <?php endif; ?>
@@ -835,6 +1353,49 @@ try {
       </div>
     </div>
 
+    <div class="row g-4 mt-1">
+      <div class="col-lg-12">
+        <div class="section-card">
+          <div class="section-title">
+            <div>
+              <h4 class="mb-1">Cancellation Requests You Sent</h4>
+              <p class="mini-muted mb-0">See whether collaborators still need to approve a shared-event cancellation.</p>
+            </div>
+          </div>
+
+          <div class="list-stack">
+            <?php if (count($sentCancellationRequests) === 0): ?>
+              <div class="invite-card">
+                <div class="mini-muted">You have not sent any cancellation approval requests yet.</div>
+              </div>
+            <?php else: ?>
+              <?php foreach ($sentCancellationRequests as $request): ?>
+                <div class="invite-card d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                  <div>
+                    <div class="fw-semibold"><?= htmlspecialchars($request['title']) ?></div>
+                    <div class="mini-muted">
+                      Sent <?= htmlspecialchars($request['created_at']) ?>
+                      <?php if (!empty($request['resolved_at'])): ?>
+                        - Resolved <?= htmlspecialchars($request['resolved_at']) ?>
+                      <?php endif; ?>
+                    </div>
+                    <div class="mini-muted">
+                      Approvals: <?= (int) $request['approvals_granted'] ?> approved,
+                      <?= (int) $request['approvals_pending'] ?> pending,
+                      <?= (int) $request['approvals_declined'] ?> declined
+                    </div>
+                  </div>
+                  <span class="badge <?= $request['status'] === 'completed' ? 'text-bg-success' : ($request['status'] === 'declined' ? 'text-bg-secondary' : 'text-bg-warning') ?>">
+                    <?= htmlspecialchars(ucfirst($request['status'])) ?>
+                  </span>
+                </div>
+              <?php endforeach; ?>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="section-card mt-4" id="my-events">
       <div class="section-title">
         <div>
@@ -848,6 +1409,7 @@ try {
           <thead>
             <tr>
               <th>Event Name</th>
+              <th>Organizers</th>
               <th>Date</th>
               <th>Location</th>
               <th>Status</th>
@@ -857,11 +1419,17 @@ try {
           </thead>
           <tbody>
             <?php if (count($events) === 0): ?>
-              <tr><td colspan="6">No accepted events found.</td></tr>
+              <tr><td colspan="7">No accepted events found.</td></tr>
             <?php else: ?>
               <?php foreach ($events as $event): ?>
                 <tr>
                   <td><?= htmlspecialchars($event['title']) ?></td>
+                  <td>
+                    <div><?= htmlspecialchars($event['organizer_names'] ?? $fullName) ?></div>
+                    <div class="mini-muted">
+                      <?= (int) ($event['organizer_count'] ?? 1) > 1 ? 'Collaborative event' : 'Single-organizer event' ?>
+                    </div>
+                  </td>
                   <td><?= htmlspecialchars($event['event_date']) ?></td>
                   <td><?= htmlspecialchars($event['location']) ?></td>
                   <td>
@@ -875,18 +1443,44 @@ try {
                   <td><?= htmlspecialchars($event['booking_count']) ?></td>
                   <td>
                     <?php if (($event['event_status'] ?? 'scheduled') === 'cancelled' || ($event['event_date'] ?? '') < date('Y-m-d')): ?>
-                      <span class="mini-muted">No actions available</span>
+                      <div class="d-flex gap-2 flex-wrap">
+                        <a
+                          href="export_event_attendees.php?event_id=<?= (int) $event['event_id'] ?>"
+                          class="btn btn-outline-secondary btn-sm"
+                        >
+                          Export Attendees CSV
+                        </a>
+                      </div>
+                    <?php elseif ((int) ($event['has_pending_cancellation_request'] ?? 0) === 1): ?>
+                      <div class="d-flex gap-2 flex-wrap">
+                        <span class="mini-muted align-self-center">Cancellation approval pending</span>
+                        <a
+                          href="export_event_attendees.php?event_id=<?= (int) $event['event_id'] ?>"
+                          class="btn btn-outline-secondary btn-sm"
+                        >
+                          Export Attendees CSV
+                        </a>
+                      </div>
                     <?php else: ?>
-                      <button
-                        type="button"
-                        class="btn btn-outline-danger btn-sm"
-                        data-bs-toggle="modal"
-                        data-bs-target="#cancelEventModal"
-                        data-event-id="<?= (int) $event['event_id'] ?>"
-                        data-event-title="<?= htmlspecialchars($event['title'], ENT_QUOTES) ?>"
-                      >
-                        Cancel Event
-                      </button>
+                      <div class="d-flex gap-2 flex-wrap">
+                        <button
+                          type="button"
+                          class="btn btn-outline-danger btn-sm"
+                          data-bs-toggle="modal"
+                          data-bs-target="#cancelEventModal"
+                          data-event-id="<?= (int) $event['event_id'] ?>"
+                          data-event-title="<?= htmlspecialchars($event['title'], ENT_QUOTES) ?>"
+                          data-organizer-count="<?= (int) $event['organizer_count'] ?>"
+                        >
+                          <?= (int) $event['organizer_count'] > 1 ? 'Request Cancellation' : 'Cancel Event' ?>
+                        </button>
+                        <a
+                          href="export_event_attendees.php?event_id=<?= (int) $event['event_id'] ?>"
+                          class="btn btn-outline-secondary btn-sm"
+                        >
+                          Export Attendees CSV
+                        </a>
+                      </div>
                     <?php endif; ?>
                   </td>
                 </tr>
@@ -945,6 +1539,9 @@ try {
             <input type="hidden" name="cancel_event" value="1" />
             <input type="hidden" name="event_id" id="cancelEventId" value="" />
             <p class="mb-2">You're cancelling <strong id="cancelEventName">this event</strong>.</p>
+            <div class="alert alert-warning py-2 px-3" id="cancelEventFlowHint">
+              This action will cancel the event immediately.
+            </div>
             <div class="mb-3">
               <label for="cancellation_reason" class="form-label">Valid reason</label>
               <textarea
@@ -972,6 +1569,8 @@ try {
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     const cancelEventModal = document.getElementById('cancelEventModal');
+    const notificationToggle = document.getElementById('notificationToggle');
+    const notificationPopover = document.getElementById('notificationPopover');
 
     if (cancelEventModal) {
       cancelEventModal.addEventListener('show.bs.modal', (event) => {
@@ -979,10 +1578,40 @@ try {
         const eventIdInput = document.getElementById('cancelEventId');
         const eventNameLabel = document.getElementById('cancelEventName');
         const reasonField = document.getElementById('cancellation_reason');
+        const flowHint = document.getElementById('cancelEventFlowHint');
+        const organizerCount = Number(button?.getAttribute('data-organizer-count') || '1');
 
         eventIdInput.value = button?.getAttribute('data-event-id') || '';
         eventNameLabel.textContent = button?.getAttribute('data-event-title') || 'this event';
         reasonField.value = '';
+        flowHint.textContent = organizerCount > 1
+          ? 'This event has collaborators, so a cancellation approval request will be sent to the other organizers first.'
+          : 'This action will cancel the event immediately.';
+      });
+    }
+
+    if (notificationToggle && notificationPopover) {
+      notificationToggle.addEventListener('click', () => {
+        const isOpen = notificationPopover.classList.toggle('open');
+        notificationToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      });
+
+      document.addEventListener('click', (event) => {
+        if (!notificationPopover.classList.contains('open')) {
+          return;
+        }
+
+        if (!notificationPopover.contains(event.target) && !notificationToggle.contains(event.target)) {
+          notificationPopover.classList.remove('open');
+          notificationToggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          notificationPopover.classList.remove('open');
+          notificationToggle.setAttribute('aria-expanded', 'false');
+        }
       });
     }
   </script>

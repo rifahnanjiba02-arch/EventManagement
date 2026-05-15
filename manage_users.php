@@ -1,11 +1,14 @@
 <?php
 require_once 'session_bootstrap.php';
 require('db.php');
+require_once 'event_status_schema.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'organizer' || $_SESSION['is_admin'] != 1) {
     header('Location: organizer_profile.php');
     exit;
 }
+
+ensureEventStatusSchema($pdo);
 
 if (isset($_GET['delete_user_id'])) {
     $delete_user_id = (int)$_GET['delete_user_id'];
@@ -52,6 +55,57 @@ foreach ($users as $user) {
         $adminCount++;
     }
 }
+
+$cancelledEventsStmt = $pdo->query("
+    SELECT COUNT(*)
+    FROM EventDetails
+    WHERE event_status = 'cancelled'
+");
+$cancelledEventsCount = (int) $cancelledEventsStmt->fetchColumn();
+
+$unattributedCancelledEventsStmt = $pdo->query("
+    SELECT COUNT(*)
+    FROM EventDetails
+    WHERE event_status = 'cancelled'
+      AND cancelled_by_organizer_id IS NULL
+");
+$unattributedCancelledEventsCount = (int) $unattributedCancelledEventsStmt->fetchColumn();
+
+$cancellationLeadersStmt = $pdo->query("
+    SELECT
+        o.organizer_id,
+        u.first_name,
+        u.last_name,
+        u.email,
+        COUNT(e.event_id) AS cancelled_events
+    FROM EventDetails e
+    JOIN Organizer o ON o.organizer_id = e.cancelled_by_organizer_id
+    JOIN Users u ON u.user_id = o.user_id
+    WHERE e.event_status = 'cancelled'
+    GROUP BY o.organizer_id, u.first_name, u.last_name, u.email
+    ORDER BY cancelled_events DESC, u.first_name ASC, u.last_name ASC
+");
+$cancellationLeaders = $cancellationLeadersStmt->fetchAll(PDO::FETCH_ASSOC);
+
+$cancelledEventsAuditStmt = $pdo->query("
+    SELECT
+        e.event_id,
+        e.title,
+        e.event_date,
+        e.cancellation_reason,
+        e.cancellation_time,
+        e.cancelled_by_organizer_id,
+        o.organizer_id,
+        u.first_name,
+        u.last_name,
+        u.email
+    FROM EventDetails e
+    LEFT JOIN Organizer o ON o.organizer_id = e.cancelled_by_organizer_id
+    LEFT JOIN Users u ON u.user_id = o.user_id
+    WHERE e.event_status = 'cancelled'
+    ORDER BY e.cancellation_time DESC, e.event_id DESC
+");
+$cancelledEventsAudit = $cancelledEventsAuditStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -79,52 +133,65 @@ foreach ($users as $user) {
         radial-gradient(circle at top left, rgba(185, 80, 42, 0.12), transparent 24%),
         linear-gradient(180deg, #f6f2eb 0%, #fffdfa 100%);
     }
-    .navbar {
+    .workspace-header {
       position: sticky;
       top: 0;
       z-index: 1030;
-      padding-top: 1rem;
-      padding-bottom: 0.35rem;
-      background: transparent !important;
-      box-shadow: none;
-    }
-    .nav-panel {
-      padding: 1rem 1.2rem;
-      border: 1px solid rgba(31, 41, 51, 0.08);
-      border-radius: 1.5rem;
-      background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(247, 239, 231, 0.96));
-      box-shadow: 0 18px 38px rgba(84, 52, 37, 0.1);
+      padding: 1rem 0 0.75rem;
+      background: linear-gradient(180deg, rgba(246, 242, 235, 0.96), rgba(246, 242, 235, 0.82));
       backdrop-filter: blur(10px);
     }
-    .navbar-brand {
-      color: #1f2933 !important;
-      font-weight: 700;
-      letter-spacing: 0.01em;
+    .workspace-header-inner {
+      max-width: var(--shell-max);
+      margin: 0 auto;
+      padding: 0 0.75rem;
+    }
+    .workspace-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 1.2rem;
+      border: 1px solid rgba(31, 41, 51, 0.08);
+      border-radius: 1.25rem;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 14px 30px rgba(91, 67, 52, 0.08);
+    }
+    .workspace-brand {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .workspace-brand strong {
+      font-size: 1.05rem;
+      line-height: 1.1;
     }
     .workspace-shell {
       max-width: var(--shell-max);
     }
     .workspace-links {
       display: flex;
+      align-items: center;
       flex-wrap: wrap;
       gap: 0.6rem;
-      margin-top: 0.8rem;
     }
     .workspace-links a {
-      padding: 0.45rem 0.85rem;
-      border-radius: 999px;
+      padding: 0.25rem 0;
       text-decoration: none;
-      background: rgba(185, 80, 42, 0.1);
       color: #7f3e24;
-      font-size: 0.92rem;
+      font-size: 0.95rem;
       font-weight: 600;
-      transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+      transition: color 0.2s ease;
     }
     .workspace-links a:hover {
-      background: rgba(185, 80, 42, 0.18);
       color: #5d2d1c;
-      transform: translateY(-1px);
+    }
+    .workspace-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.6rem;
+      flex-wrap: wrap;
     }
     .hero-card,
     .stat-card,
@@ -229,40 +296,40 @@ foreach ($users as $user) {
       background: #b02a37;
       border-color: #b02a37;
     }
-    .navbar .btn {
+    .workspace-actions .btn {
       border-radius: 999px;
       font-weight: 600;
       padding-inline: 1rem;
     }
-    .navbar .btn-light {
+    .workspace-actions .btn-light {
       color: #fff;
       background-color: var(--accent);
       border-color: var(--accent);
     }
-    .navbar .btn-light:hover,
-    .navbar .btn-light:focus {
+    .workspace-actions .btn-light:hover,
+    .workspace-actions .btn-light:focus {
       color: #fff;
       background-color: var(--accent-dark);
       border-color: var(--accent-dark);
     }
-    .navbar .btn-outline-light {
+    .workspace-actions .btn-outline-light {
       color: #364152;
       border-color: rgba(54, 65, 82, 0.18);
       background: rgba(255, 255, 255, 0.7);
     }
-    .navbar .btn-outline-light:hover,
-    .navbar .btn-outline-light:focus {
+    .workspace-actions .btn-outline-light:hover,
+    .workspace-actions .btn-outline-light:focus {
       color: #1f2933;
       background: rgba(255, 255, 255, 0.95);
       border-color: rgba(54, 65, 82, 0.28);
     }
-    .navbar .btn-outline-warning {
+    .workspace-actions .btn-outline-warning {
       color: var(--accent-dark);
       border-color: rgba(147, 60, 29, 0.25);
       background: rgba(185, 80, 42, 0.08);
     }
-    .navbar .btn-outline-warning:hover,
-    .navbar .btn-outline-warning:focus {
+    .workspace-actions .btn-outline-warning:hover,
+    .workspace-actions .btn-outline-warning:focus {
       color: #fff;
       background: var(--accent-dark);
       border-color: var(--accent-dark);
@@ -275,6 +342,13 @@ foreach ($users as $user) {
         align-items: flex-start;
         flex-direction: column;
       }
+      .workspace-bar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+      .workspace-actions {
+        justify-content: flex-start;
+      }
     }
     @media (max-width: 575.98px) {
       .stat-grid {
@@ -284,34 +358,39 @@ foreach ($users as $user) {
       .table-card {
         padding: 1.15rem;
       }
-      .nav-panel {
+      .workspace-header-inner {
+        padding: 0 0.5rem;
+      }
+      .workspace-bar {
         padding: 1rem;
-        border-radius: 1.2rem;
+      }
+      .workspace-actions .btn {
+        width: 100%;
       }
     }
   </style>
 </head>
 <body>
-  <nav class="navbar navbar-dark px-4 py-3">
-    <div class="container-fluid px-0 nav-panel">
-      <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 w-100">
-        <div>
-          <a class="navbar-brand mb-0">Admin Workspace</a>
+  <header class="workspace-header">
+    <div class="workspace-header-inner">
+      <div class="workspace-bar">
+        <div class="workspace-brand">
+          <strong>Admin Workspace</strong>
+          <span class="mini-muted">Simple controls for users and cancellation review</span>
           <div class="workspace-links">
             <a href="#overview">Overview</a>
+            <a href="#cancellations">Cancellation Audit</a>
             <a href="#directory">User Directory</a>
           </div>
         </div>
-        <div class="d-flex gap-2 flex-wrap">
-          <a href="index.html" class="btn btn-outline-light">Home</a>
-          <a href="events.html" class="btn btn-outline-light">Events</a>
+        <div class="workspace-actions">
           <a href="organizer_profile.php" class="btn btn-light">Back to Dashboard</a>
-          <a href="create_event.html" class="btn btn-outline-light">Create Event</a>
+          <a href="events.html" class="btn btn-outline-light">Events</a>
           <a href="logout.php" class="btn btn-outline-warning">Log Out</a>
         </div>
       </div>
     </div>
-  </nav>
+  </header>
 
   <div class="container workspace-shell my-4" id="overview">
     <div class="hero-card mb-4">
@@ -339,6 +418,95 @@ foreach ($users as $user) {
               <span class="mini-muted">Admins</span>
               <strong><?= $adminCount ?></strong>
             </div>
+            <div class="stat-card">
+              <span class="mini-muted">Cancelled Events</span>
+              <strong><?= $cancelledEventsCount ?></strong>
+            </div>
+            <div class="stat-card">
+              <span class="mini-muted">Legacy / Unattributed</span>
+              <strong><?= $unattributedCancelledEventsCount ?></strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-card mb-4" id="cancellations">
+      <div class="toolbar">
+        <div>
+          <h2 class="h4 mb-1">Cancellation Audit</h2>
+          <p class="mini-muted mb-0">Track which organizer cancelled which event so unusual activity stands out early.</p>
+        </div>
+      </div>
+
+      <div class="row g-4 mb-3">
+        <div class="col-lg-4">
+            <div class="hero-card h-100 p-3">
+              <div class="fw-semibold mb-2">Organizers with cancellations</div>
+            <?php if (count($cancellationLeaders) === 0): ?>
+              <div class="mini-muted">
+                <?= $cancelledEventsCount > 0
+                  ? 'Cancelled events exist, but none can be confidently attributed to one organizer yet.'
+                  : 'No organizer has cancelled an event yet.' ?>
+              </div>
+            <?php else: ?>
+              <div class="list-group list-group-flush">
+                <?php foreach ($cancellationLeaders as $leader): ?>
+                  <div class="d-flex justify-content-between align-items-start gap-3 py-2 border-bottom">
+                    <div>
+                      <div class="fw-semibold"><?= htmlspecialchars($leader['first_name'] . ' ' . $leader['last_name']) ?></div>
+                      <div class="mini-muted">Organizer #<?= (int) $leader['organizer_id'] ?> - <?= htmlspecialchars($leader['email']) ?></div>
+                    </div>
+                    <span class="admin-pill"><?= (int) $leader['cancelled_events'] ?> cancelled</span>
+                  </div>
+                <?php endforeach; ?>
+              </div>
+            <?php endif; ?>
+          </div>
+        </div>
+        <div class="col-lg-8">
+          <div class="table-wrap">
+            <table class="table align-middle">
+              <thead>
+                <tr>
+                  <th>Event</th>
+                  <th>Cancelled By</th>
+                  <th>When</th>
+                  <th>Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php if (count($cancelledEventsAudit) === 0): ?>
+                  <tr><td colspan="4" class="mini-muted">No cancelled events recorded yet.</td></tr>
+                <?php else: ?>
+                  <?php foreach ($cancelledEventsAudit as $audit): ?>
+                    <tr>
+                      <td>
+                        <div class="fw-semibold"><?= htmlspecialchars($audit['title']) ?></div>
+                        <div class="mini-muted">Event #<?= (int) $audit['event_id'] ?> - <?= htmlspecialchars($audit['event_date']) ?></div>
+                      </td>
+                      <td>
+                        <div class="fw-semibold">
+                          <?= htmlspecialchars(trim(($audit['first_name'] ?? '') . ' ' . ($audit['last_name'] ?? '')) ?: 'Legacy cancellation') ?>
+                        </div>
+                        <div class="mini-muted">
+                          <?php if (!empty($audit['organizer_id'])): ?>
+                            Organizer #<?= (int) $audit['organizer_id'] ?>
+                          <?php elseif (empty($audit['cancelled_by_organizer_id'])): ?>
+                            Not attributable from older data
+                          <?php endif; ?>
+                          <?php if (!empty($audit['email'])): ?>
+                            <?= !empty($audit['organizer_id']) ? ' - ' : '' ?><?= htmlspecialchars($audit['email']) ?>
+                          <?php endif; ?>
+                        </div>
+                      </td>
+                      <td><?= htmlspecialchars($audit['cancellation_time'] ?? 'Unknown time') ?></td>
+                      <td><?= htmlspecialchars($audit['cancellation_reason'] ?? 'No reason saved') ?></td>
+                    </tr>
+                  <?php endforeach; ?>
+                <?php endif; ?>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

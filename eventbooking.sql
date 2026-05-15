@@ -166,23 +166,24 @@ CREATE TABLE `eventdetails` (
   `location` varchar(255) DEFAULT NULL,
   `event_status` enum('scheduled','cancelled') NOT NULL DEFAULT 'scheduled',
   `cancellation_reason` text DEFAULT NULL,
-  `cancellation_time` datetime DEFAULT NULL
+  `cancellation_time` datetime DEFAULT NULL,
+  `cancelled_by_organizer_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `eventdetails`
 --
 
-INSERT INTO `eventdetails` (`event_id`, `title`, `type`, `event_date`, `location`, `event_status`, `cancellation_reason`, `cancellation_time`) VALUES
-(3, 'Tech Talks', 'Seminer', '2025-09-06', 'Dhaka', 'scheduled', NULL, NULL),
-(4, 'TechNova Summit', 'Conference', '2025-07-01', 'Dhaka', 'scheduled', NULL, NULL),
-(7, 'The Opulent Affair', 'Executive Summit', '2025-10-09', 'Los Angeles', 'scheduled', NULL, NULL),
-(8, 'InnovateX', 'Startup Pitch', '2025-08-08', 'Dhaka', 'scheduled', NULL, NULL),
-(9, 'Celestara: A Night of Light and Echo', 'Immersive Multisensory Art & Sound Experience', '2025-09-04', 'Dhaka', 'scheduled', NULL, NULL),
-(10, 'Neon Horizons: A Future Arts Festival', 'Art & Technology Fusion Festival', '2025-06-05', 'Los Angeles', 'scheduled', NULL, NULL),
-(11, 'Echoes of Earth: A Sustainable Living Summit', 'Environmental Conference', '2025-11-07', 'Dhaka', 'scheduled', NULL, NULL),
-(12, 'FitFest 2025', 'Fitness and Wellness Festival', '2025-08-11', 'Dhaka', 'scheduled', NULL, NULL),
-(13, 'Techonology Talk', 'conference', '2025-08-30', 'Dhaka', 'scheduled', NULL, NULL);
+INSERT INTO `eventdetails` (`event_id`, `title`, `type`, `event_date`, `location`, `event_status`, `cancellation_reason`, `cancellation_time`, `cancelled_by_organizer_id`) VALUES
+(3, 'Tech Talks', 'Seminer', '2025-09-06', 'Dhaka', 'scheduled', NULL, NULL, NULL),
+(4, 'TechNova Summit', 'Conference', '2025-07-01', 'Dhaka', 'scheduled', NULL, NULL, NULL),
+(7, 'The Opulent Affair', 'Executive Summit', '2025-10-09', 'Los Angeles', 'scheduled', NULL, NULL, NULL),
+(8, 'InnovateX', 'Startup Pitch', '2025-08-08', 'Dhaka', 'scheduled', NULL, NULL, NULL),
+(9, 'Celestara: A Night of Light and Echo', 'Immersive Multisensory Art & Sound Experience', '2025-09-04', 'Dhaka', 'scheduled', NULL, NULL, NULL),
+(10, 'Neon Horizons: A Future Arts Festival', 'Art & Technology Fusion Festival', '2025-06-05', 'Los Angeles', 'scheduled', NULL, NULL, NULL),
+(11, 'Echoes of Earth: A Sustainable Living Summit', 'Environmental Conference', '2025-11-07', 'Dhaka', 'scheduled', NULL, NULL, NULL),
+(12, 'FitFest 2025', 'Fitness and Wellness Festival', '2025-08-11', 'Dhaka', 'scheduled', NULL, NULL, NULL),
+(13, 'Techonology Talk', 'conference', '2025-08-30', 'Dhaka', 'scheduled', NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
