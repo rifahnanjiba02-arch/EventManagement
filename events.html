@@ -728,6 +728,7 @@
   <script>
     let userRole = null;
     let attendeeId = null;
+    let bookedEventIds = new Set();
 
     const upcomingContainer = document.getElementById('upcomingEventsContainer');
     const previousContainer = document.getElementById('previousEventsContainer');
@@ -833,6 +834,12 @@
 
     async function loadEvents() {
       try {
+        if (userRole === 'attendee' && attendeeId) {
+          await loadBookedEvents();
+        } else {
+          bookedEventIds = new Set();
+        }
+
         const res = await fetch('get_events.php');
         if (!res.ok) {
           throw new Error('Failed to fetch events');
@@ -873,8 +880,29 @@
       }
     }
 
+    async function loadBookedEvents() {
+      try {
+        const response = await fetch(`get_bookings.php?attendee_id=${encodeURIComponent(attendeeId)}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch attendee bookings');
+        }
+
+        const bookings = await response.json();
+        bookedEventIds = new Set(
+          (Array.isArray(bookings) ? bookings : [])
+            .map(booking => Number(booking.event_id))
+            .filter(eventId => !Number.isNaN(eventId))
+        );
+      } catch (error) {
+        console.error('Failed to load attendee bookings:', error);
+        bookedEventIds = new Set();
+      }
+    }
+
     function createEventCard(event, isPastEvent) {
-      const canBook = userRole === 'attendee' && attendeeId && !isPastEvent;
+      const eventId = Number(event.id);
+      const isAlreadyBooked = bookedEventIds.has(eventId);
+      const canBook = userRole === 'attendee' && attendeeId && !isPastEvent && !isAlreadyBooked;
       const title = event.title || 'Untitled Event';
       const eventType = event.type || 'General';
       const eventDate = formatEventDate(event.event_date);
@@ -908,22 +936,26 @@
           </div>
         </div>
         <div class="card-footer">
-          <div class="card-note">${escapeHtml(getCardNote(canBook, isPastEvent, userRole))}</div>
-          ${renderCardAction(canBook, isPastEvent, event.id)}
+          <div class="card-note">${escapeHtml(getCardNote(canBook, isPastEvent, userRole, isAlreadyBooked))}</div>
+          ${renderCardAction(canBook, isPastEvent, eventId, isAlreadyBooked)}
         </div>
       `;
 
       if (canBook) {
         const button = article.querySelector('button');
-        button.addEventListener('click', () => bookEvent(event.id, button));
+        button.addEventListener('click', () => bookEvent(eventId, button));
       }
 
       return article;
     }
 
-    function getCardNote(canBook, isPastEvent, role) {
+    function getCardNote(canBook, isPastEvent, role, isAlreadyBooked) {
       if (isPastEvent) {
         return 'This event has already taken place.';
+      }
+
+      if (isAlreadyBooked) {
+        return 'You already booked this event, so another reservation is not needed.';
       }
 
       if (canBook) {
@@ -937,9 +969,13 @@
       return 'Sign in as an attendee to reserve a seat.';
     }
 
-    function renderCardAction(canBook, isPastEvent, eventId) {
+    function renderCardAction(canBook, isPastEvent, eventId, isAlreadyBooked) {
       if (isPastEvent) {
         return '<span class="btn btn-secondary" aria-disabled="true">Past Event</span>';
+      }
+
+      if (isAlreadyBooked) {
+        return '<span class="btn btn-secondary" aria-disabled="true">Already Booked</span>';
       }
 
       if (canBook) {
