@@ -2,176 +2,754 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Leave Feedback</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gathero | Feedback</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet" />
+  <script src="global_nav.js" defer></script>
   <style>
-    .star-rating {
-      direction: rtl;
-      display: inline-flex;
-      font-size: 2rem;
-      user-select: none;
+    :root {
+      --bg: #f6efe5;
+      --surface: rgba(255, 250, 245, 0.8);
+      --surface-strong: rgba(255, 252, 247, 0.96);
+      --text: #1d1b18;
+      --muted: #685f58;
+      --accent: #d95d39;
+      --accent-dark: #a94224;
+      --accent-soft: #ffdcca;
+      --highlight: #f4b740;
+      --highlight-soft: rgba(244, 183, 64, 0.18);
+      --success: #2f6c67;
+      --success-soft: rgba(47, 108, 103, 0.14);
+      --line: rgba(29, 27, 24, 0.09);
+      --shadow: 0 22px 60px rgba(83, 52, 30, 0.15);
+      --radius-xl: 30px;
+      --radius-lg: 24px;
+      --radius-md: 18px;
     }
-    .star-rating input[type="radio"] {
-      display: none;
+
+    * {
+      box-sizing: border-box;
     }
-    .star-rating label {
-      color: #ccc;
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Source Sans 3", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 183, 130, 0.38), transparent 28%),
+        radial-gradient(circle at right 15%, rgba(217, 93, 57, 0.18), transparent 18%),
+        radial-gradient(circle at bottom right, rgba(244, 183, 64, 0.12), transparent 24%),
+        linear-gradient(180deg, #fff9f2 0%, var(--bg) 100%);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
       cursor: pointer;
-      transition: color 0.2s;
     }
-    .star-rating input[type="radio"]:checked ~ label,
+
+    .page-shell {
+      width: min(1180px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 1rem 0 4rem;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 0 1.4rem;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      line-height: 0;
+    }
+
+    .brand-logo {
+      display: block;
+      height: 3.3rem;
+      width: auto;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      min-height: 3rem;
+      padding: 0.88rem 1.25rem;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-weight: 700;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-primary {
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent), #ef8b4f);
+      box-shadow: 0 14px 28px rgba(217, 93, 57, 0.24);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, var(--accent-dark), var(--accent));
+    }
+
+    .btn-secondary {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.62);
+      border-color: rgba(29, 27, 24, 0.1);
+    }
+
+    .btn[disabled] {
+      transform: none;
+      opacity: 0.65;
+      cursor: wait;
+      box-shadow: none;
+    }
+
+    .hero {
+      margin-top: 0.5rem;
+    }
+
+    .panel,
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .panel {
+      padding: 2rem;
+      border-radius: var(--radius-xl);
+      animation: rise 0.7s ease both;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.45rem 0.9rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.65);
+      border: 1px solid rgba(29, 27, 24, 0.08);
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 1rem 0 0.7rem;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(2.4rem, 6vw, 4.1rem);
+      line-height: 0.98;
+      letter-spacing: -0.045em;
+    }
+
+    .hero-copy {
+      margin: 0 0 1.5rem;
+      max-width: 34rem;
+      color: var(--muted);
+      font-size: 1.06rem;
+      line-height: 1.65;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.9rem;
+      margin-bottom: 1.4rem;
+    }
+
+    .stat-card {
+      padding: 1rem 1.05rem;
+      border-radius: 1.2rem;
+      background: rgba(255, 255, 255, 0.7);
+    }
+
+    .stat-card strong {
+      display: block;
+      margin-bottom: 0.15rem;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.4rem;
+    }
+
+    .stat-card span {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .notes-strip {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .note-pill {
+      padding: 0.75rem 0.95rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.74);
+      border: 1px solid rgba(29, 27, 24, 0.08);
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .feedback-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1.4rem;
+      margin-top: 1.5rem;
+    }
+
+    .form-card {
+      border-radius: var(--radius-xl);
+      padding: 1.7rem;
+      background: var(--surface-strong);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      animation: rise 0.7s ease 0.15s both;
+    }
+
+    .card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .card-head h2 {
+      margin: 0 0 0.3rem;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.55rem;
+      letter-spacing: -0.03em;
+    }
+
+    .card-head p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .status-badge {
+      flex-shrink: 0;
+      padding: 0.55rem 0.85rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 1.2rem;
+    }
+
+    .field {
+      display: grid;
+      gap: 0.55rem;
+    }
+
+    .field label,
+    .field-legend {
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .field-hint {
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid rgba(29, 27, 24, 0.12);
+      border-radius: 1rem;
+      background: #fff;
+      color: var(--text);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+    select {
+      min-height: 3.35rem;
+      padding: 0.9rem 1rem;
+      appearance: none;
+      background-image:
+        linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+        linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+      background-position:
+        calc(100% - 22px) calc(50% - 4px),
+        calc(100% - 16px) calc(50% - 4px);
+      background-size: 6px 6px, 6px 6px;
+      background-repeat: no-repeat;
+    }
+
+    textarea {
+      min-height: 160px;
+      padding: 1rem 1rem 2.8rem;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: rgba(217, 93, 57, 0.45);
+      box-shadow: 0 0 0 4px rgba(217, 93, 57, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .rating-block {
+      padding: 1rem;
+      border-radius: 1.2rem;
+      background: linear-gradient(180deg, rgba(255, 247, 233, 0.9), rgba(255, 255, 255, 0.85));
+      border: 1px solid rgba(244, 183, 64, 0.24);
+    }
+
+    .star-rating {
+      display: inline-flex;
+      flex-direction: row-reverse;
+      gap: 0.1rem;
+      margin-top: 0.5rem;
+    }
+
+    .star-rating input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .star-rating label {
+      font-size: clamp(2.3rem, 5vw, 3rem);
+      line-height: 1;
+      color: #d7d1cb;
+      cursor: pointer;
+      transition: transform 0.18s ease, color 0.18s ease, text-shadow 0.18s ease;
+    }
+
     .star-rating label:hover,
-    .star-rating label:hover ~ label {
-      color: #ffc107;
+    .star-rating label:hover ~ label,
+    .star-rating input[type="radio"]:checked ~ label {
+      color: var(--highlight);
+      text-shadow: 0 10px 24px rgba(244, 183, 64, 0.28);
+    }
+
+    .star-rating label:hover {
+      transform: translateY(-3px) scale(1.04);
+    }
+
+    .rating-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-top: 0.8rem;
+      color: var(--muted);
+    }
+
+    .rating-label {
+      min-height: 1.5rem;
+      font-weight: 700;
+      color: var(--accent-dark);
+    }
+
+    .text-wrap {
+      position: relative;
+    }
+
+    .char-count {
+      position: absolute;
+      right: 1rem;
+      bottom: 0.9rem;
+      color: var(--muted);
+      font-size: 0.88rem;
+      background: rgba(255, 250, 245, 0.94);
+      padding: 0.2rem 0.45rem;
+      border-radius: 999px;
+    }
+
+    .message {
+      display: none;
+      padding: 0.95rem 1rem;
+      border-radius: 1rem;
+      font-weight: 600;
+      line-height: 1.5;
+    }
+
+    .message.show {
+      display: block;
+    }
+
+    .message.success {
+      background: var(--success-soft);
+      color: var(--success);
+      border: 1px solid rgba(47, 108, 103, 0.2);
+    }
+
+    .message.error {
+      background: rgba(187, 74, 67, 0.12);
+      color: #9f3b35;
+      border: 1px solid rgba(187, 74, 67, 0.18);
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .submit-note {
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .empty-note {
+      padding: 0.95rem 1rem;
+      border-radius: 1rem;
+      background: rgba(255, 220, 202, 0.38);
+      border: 1px solid rgba(217, 93, 57, 0.18);
+      color: var(--accent-dark);
+      font-weight: 600;
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 920px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page-shell {
+        width: min(100% - 1rem, 100%);
+      }
+
+      .topbar,
+      .card-head,
+      .actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .panel,
+      .form-card {
+        padding: 1.25rem;
+      }
+
+      h1 {
+        font-size: 2.4rem;
+      }
+
+      .rating-meta {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .nav-actions {
+        justify-content: flex-start;
+      }
     }
   </style>
 </head>
 <body>
-  <nav class="navbar navbar-dark bg-dark px-4 mb-4">
-    <span class="navbar-brand">Feedback</span>
-    <div>
-      <a href="index.html" class="btn btn-light me-2">Home</a>
-      <a href="events.html" class="btn btn-light me-2">Events</a>
-      <a href="#" id="myBookingsLink" class="btn btn-light me-2">My Bookings</a>
-      <a href="attendee_profile.php" class="btn btn-light me-2">My Profile</a>
-      <a href="logout.php" class="btn btn-outline-light">Log Out</a>
-    </div>
-  </nav>
+  <div class="page-shell">
+    <header class="topbar">
+      <a href="index.html" class="brand" aria-label="Gathero home">
+        <img src="uploads/gathero_logo_no_icon.svg" alt="Gathero" class="brand-logo" />
+      </a>
+      <nav class="nav-actions" data-global-nav></nav>
+    </header>
 
-  <div class="container mt-5">
-    <h2>Leave Feedback</h2>
-    <form id="feedbackForm">
-      <div class="mb-3">
-        <label class="form-label">Select Event</label>
-        <select class="form-select" name="event_id" id="eventDropdown" required>
-          <option value="">-- Loading events... --</option>
-        </select>
-      </div>
+    <section class="hero">
+      <div class="panel">
+        <span class="eyebrow">Attendee Feedback</span>
+        <h1>Leave feedback for an event.</h1>
+        <p class="hero-copy">
+          Pick an event, choose a rating, and add a short comment if you want.
+        </p>
 
-      <div class="mb-3">
-        <label class="form-label d-block">Rating</label>
-        <div class="star-rating">
-          <input type="radio" id="star5" name="rating" value="5" required />
-          <label for="star5">&#9733;</label>
-          <input type="radio" id="star4" name="rating" value="4" />
-          <label for="star4">&#9733;</label>
-          <input type="radio" id="star3" name="rating" value="3" />
-          <label for="star3">&#9733;</label>
-          <input type="radio" id="star2" name="rating" value="2" />
-          <label for="star2">&#9733;</label>
-          <input type="radio" id="star1" name="rating" value="1" />
-          <label for="star1">&#9733;</label>
+        <div class="stats-grid">
+          <article class="stat-card">
+            <strong>1 minute</strong>
+            <span>Quick and simple form.</span>
+          </article>
+          <article class="stat-card">
+            <strong>500 chars</strong>
+            <span>Optional comment limit.</span>
+          </article>
+          <article class="stat-card">
+            <strong>Booked events</strong>
+            <span>Only your confirmed bookings appear.</span>
+          </article>
         </div>
       </div>
+    </section>
 
-      <div class="mb-3">
-        <label class="form-label">Comments</label>
-        <textarea class="form-control" name="comment" rows="3" maxlength="500" placeholder="Optional"></textarea>
-      </div>
+    <section class="feedback-layout">
+      <div class="form-card">
+        <div class="card-head">
+          <div>
+            <h2>Leave Feedback</h2>
+            <p>Choose an event and submit your rating.</p>
+          </div>
+          <span class="status-badge" id="formStatusBadge">Loading events...</span>
+        </div>
 
-      <div class="d-grid">
-        <button type="submit" class="btn btn-success">Submit Feedback</button>
+        <div id="formMessage" class="message" role="status" aria-live="polite"></div>
+
+        <form id="feedbackForm" class="form-grid" novalidate>
+          <div class="field">
+            <label for="eventDropdown">Select event</label>
+            <span class="field-hint">Confirmed bookings only.</span>
+            <select name="event_id" id="eventDropdown" required>
+              <option value="">Loading events...</option>
+            </select>
+          </div>
+
+          <div class="field rating-block">
+            <span class="field-legend">Your rating</span>
+            <span class="field-hint">Choose from 1 to 5 stars.</span>
+            <div class="star-rating" role="radiogroup" aria-label="Event rating">
+              <input type="radio" id="star5" name="rating" value="5" required />
+              <label for="star5" title="Excellent" aria-label="5 stars">&#9733;</label>
+              <input type="radio" id="star4" name="rating" value="4" />
+              <label for="star4" title="Very good" aria-label="4 stars">&#9733;</label>
+              <input type="radio" id="star3" name="rating" value="3" />
+              <label for="star3" title="Good" aria-label="3 stars">&#9733;</label>
+              <input type="radio" id="star2" name="rating" value="2" />
+              <label for="star2" title="Needs work" aria-label="2 stars">&#9733;</label>
+              <input type="radio" id="star1" name="rating" value="1" />
+              <label for="star1" title="Poor" aria-label="1 star">&#9733;</label>
+            </div>
+            <div class="rating-meta">
+              <span class="rating-label" id="ratingLabel">No rating selected yet.</span>
+              <span>1 = poor, 5 = excellent</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="commentBox">Comments</label>
+            <span class="field-hint">Optional.</span>
+            <div class="text-wrap">
+              <textarea id="commentBox" name="comment" maxlength="500" placeholder="Share a short comment..."></textarea>
+              <span class="char-count" id="charCount">0 / 500</span>
+            </div>
+          </div>
+
+          <div class="actions">
+            <span class="submit-note">One submission per event.</span>
+            <button type="submit" class="btn btn-primary" id="submitButton">Submit Feedback</button>
+          </div>
+        </form>
+
+        <div id="emptyStateNote" class="empty-note" hidden>
+          You do not have any upcoming confirmed bookings available for feedback yet.
+        </div>
       </div>
-    </form>
+    </section>
   </div>
 
   <script>
-    async function updateBookingsLink() {
-      const bookingsLink = document.getElementById('myBookingsLink');
+    const ratingLabels = {
+      1: '1 star - Poor experience',
+      2: '2 stars - Needs work',
+      3: '3 stars - Good overall',
+      4: '4 stars - Very good',
+      5: '5 stars - Excellent event'
+    };
 
-      try {
-        const response = await fetch('get_session.php');
-        const session = await response.json();
+    const form = document.getElementById('feedbackForm');
+    const eventDropdown = document.getElementById('eventDropdown');
+    const formMessage = document.getElementById('formMessage');
+    const submitButton = document.getElementById('submitButton');
+    const commentBox = document.getElementById('commentBox');
+    const charCount = document.getElementById('charCount');
+    const ratingLabel = document.getElementById('ratingLabel');
+    const formStatusBadge = document.getElementById('formStatusBadge');
+    const emptyStateNote = document.getElementById('emptyStateNote');
 
-        if (session.role === 'attendee' && session.attendee_id) {
-          bookingsLink.href = `my_bookings.html?attendee_id=${encodeURIComponent(session.attendee_id)}`;
-          return;
-        }
-      } catch (error) {
-        console.error('Failed to build bookings link:', error);
-      }
+    function setMessage(type, text) {
+      formMessage.className = `message show ${type}`;
+      formMessage.textContent = text;
+    }
 
-      bookingsLink.href = 'login.php';
+    function clearMessage() {
+      formMessage.className = 'message';
+      formMessage.textContent = '';
+    }
+
+    function setFormBusy(isBusy) {
+      submitButton.disabled = isBusy;
+      submitButton.textContent = isBusy ? 'Submitting...' : 'Submit Feedback';
+    }
+
+    function updateCharCount() {
+      charCount.textContent = `${commentBox.value.length} / 500`;
+    }
+
+    function updateRatingLabel() {
+      const selected = form.querySelector('input[name="rating"]:checked');
+      ratingLabel.textContent = selected ? ratingLabels[selected.value] : 'No rating selected yet.';
     }
 
     async function loadEvents() {
-      const select = document.getElementById('eventDropdown');
-      select.innerHTML = '<option value="">-- Loading events... --</option>';
+      eventDropdown.innerHTML = '<option value="">Loading events...</option>';
+      formStatusBadge.textContent = 'Loading events...';
+      emptyStateNote.hidden = true;
+
       try {
         const response = await fetch('feedback.php', { method: 'GET' });
-        if (!response.ok) throw new Error('Failed to load events');
-        const events = await response.json();
+        const payload = await response.json().catch(() => null);
 
-        if (!Array.isArray(events) || events.length === 0) {
-          select.innerHTML = '<option value="">No upcoming events found</option>';
+        if (!response.ok) {
+          throw new Error(payload && payload.error ? payload.error : 'Failed to load events');
+        }
+
+        if (!Array.isArray(payload) || payload.length === 0) {
+          eventDropdown.innerHTML = '<option value="">No events available</option>';
+          formStatusBadge.textContent = 'No events available';
+          emptyStateNote.hidden = false;
           return;
         }
 
-        select.innerHTML = '<option value="">-- Select an event --</option>';
-        events.forEach(event => {
+        eventDropdown.innerHTML = '<option value="">Choose an event</option>';
+        payload.forEach((event) => {
           const option = document.createElement('option');
           option.value = event.id;
           option.textContent = event.title;
-          select.appendChild(option);
+          eventDropdown.appendChild(option);
         });
 
-        // Optional: select event from URL param "event" if it matches title
         const params = new URLSearchParams(window.location.search);
         const eventName = params.get('event');
         if (eventName) {
-          const match = Array.from(select.options).find(opt => opt.text.trim() === eventName.trim());
-          if (match) match.selected = true;
+          const match = Array.from(eventDropdown.options).find(
+            (option) => option.textContent.trim() === eventName.trim()
+          );
+          if (match) {
+            match.selected = true;
+          }
         }
-      } catch (err) {
-        select.innerHTML = '<option value="">Failed to load events</option>';
-        console.error(err);
+
+        formStatusBadge.textContent = `${payload.length} event${payload.length === 1 ? '' : 's'} ready`;
+      } catch (error) {
+        eventDropdown.innerHTML = '<option value="">Unable to load events</option>';
+        formStatusBadge.textContent = 'Load failed';
+        emptyStateNote.hidden = false;
+        setMessage('error', error.message || 'Unable to load events right now.');
       }
     }
 
-    window.onload = () => {
-      updateBookingsLink();
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      clearMessage();
+
+      const selectedRating = form.querySelector('input[name="rating"]:checked');
+      const selectedEvent = eventDropdown.value;
+      const comment = commentBox.value.trim();
+
+      if (!selectedEvent) {
+        setMessage('error', 'Please choose an event before submitting feedback.');
+        eventDropdown.focus();
+        return;
+      }
+
+      if (!selectedRating) {
+        setMessage('error', 'Please select a star rating before submitting.');
+        return;
+      }
+
+      setFormBusy(true);
+
+      try {
+        const response = await fetch('feedback.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event_id: selectedEvent,
+            rating: selectedRating.value,
+            comment
+          })
+        });
+
+        const result = await response.json().catch(() => null);
+
+        if (!response.ok || !result || !result.success) {
+          throw new Error(result && result.error ? result.error : 'Unable to submit feedback');
+        }
+
+        setMessage('success', result.message || 'Feedback submitted successfully.');
+        form.reset();
+        updateCharCount();
+        updateRatingLabel();
+        await loadEvents();
+      } catch (error) {
+        setMessage('error', error.message || 'Failed to submit feedback.');
+      } finally {
+        setFormBusy(false);
+      }
+    });
+
+    form.querySelectorAll('input[name="rating"]').forEach((input) => {
+      input.addEventListener('change', updateRatingLabel);
+    });
+
+    commentBox.addEventListener('input', updateCharCount);
+
+    window.addEventListener('DOMContentLoaded', () => {
+      updateCharCount();
+      updateRatingLabel();
       loadEvents();
-
-      document.getElementById('feedbackForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-
-        const form = e.target;
-        const formData = new FormData(form);
-        const data = {
-          event_id: formData.get('event_id'),
-          rating: formData.get('rating'),
-          comment: formData.get('comment').trim(),
-        };
-
-        if (!data.event_id) {
-          alert('Please select an event.');
-          return;
-        }
-        if (!data.rating) {
-          alert('Please provide a rating.');
-          return;
-        }
-
-        try {
-          const res = await fetch('feedback.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-          });
-
-          const result = await res.json();
-
-          if (res.ok && result.success) {
-            alert('Feedback submitted successfully!');
-            form.reset();
-          } else {
-            alert('Error: ' + (result.error || 'Unknown error'));
-          }
-        } catch (err) {
-          alert('Failed to submit feedback: ' + err.message);
-        }
-      });
-    };
+    });
   </script>
 </body>
 </html>
