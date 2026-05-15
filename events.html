@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Event Booking | Events</title>
+  <title>Gathero | Events</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet" />
@@ -74,22 +74,13 @@
     .brand {
       display: inline-flex;
       align-items: center;
-      gap: 0.8rem;
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 1.1rem;
-      font-weight: 700;
-      letter-spacing: 0.02em;
+      line-height: 0;
     }
 
-    .brand-mark {
-      display: grid;
-      place-items: center;
-      width: 2.7rem;
-      height: 2.7rem;
-      border-radius: 0.95rem;
-      background: linear-gradient(135deg, #1d1b18, #54463a);
-      color: #fff7f1;
-      box-shadow: 0 14px 28px rgba(29, 27, 24, 0.18);
+    .brand-logo {
+      display: block;
+      height: 3.3rem;
+      width: auto;
     }
 
     .nav-actions {
@@ -637,9 +628,8 @@
 <body>
   <div class="page-shell">
     <header class="topbar">
-      <a href="index.html" class="brand" aria-label="Event Booking home">
-        <span class="brand-mark">EB</span>
-        <span>Event Booking</span>
+      <a href="index.html" class="brand" aria-label="Gathero home">
+        <img src="uploads/gathero_logo_no_icon.svg" alt="Gathero" class="brand-logo" />
       </a>
 
       <nav class="nav-actions" id="navActions" aria-label="Primary">

@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Login | Event Booking</title>
+  <title>Login | Gathero</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -142,9 +142,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     .auth-brand {
-      color: var(--text);
-      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      line-height: 0;
       text-decoration: none;
+    }
+
+    .auth-brand-logo {
+      display: block;
+      height: 3rem;
+      width: auto;
     }
 
     .auth-nav-actions {
@@ -403,7 +410,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
   <div class="auth-topbar">
     <div class="nav-shell">
-      <a href="index.html" class="auth-brand">Event Booking</a>
+      <a href="index.html" class="auth-brand"><img src="uploads/gathero_logo_no_icon.svg" alt="Gathero" class="auth-brand-logo"></a>
       <nav class="auth-nav-actions" data-global-nav aria-label="Global navigation">
         <a href="index.html" class="btn btn-outline-secondary">Home</a>
         <a href="events.html" class="btn btn-outline-secondary">Events</a>
@@ -417,7 +424,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="row g-0">
         <div class="col-lg-5">
           <div class="auth-hero">
-            <span class="eyebrow">Event Booking</span>
+            <span class="eyebrow">Gathero</span>
             <h1>Welcome back to your event dashboard.</h1>
             <p>Sign in to manage bookings, publish events, and keep every attendee touchpoint in one place.</p>
             <ul class="hero-list">
@@ -430,7 +437,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="col-lg-7">
           <div class="auth-form-wrap">
             <h2>Login</h2>
-            <p>Use the account you created for Event Booking.</p>
+            <p>Use the account you created for Gathero.</p>
 
             <?php if (isset($_GET['logged_out'])): ?>
               <div class="alert alert-success mb-4" role="alert">You have been logged out successfully.</div>

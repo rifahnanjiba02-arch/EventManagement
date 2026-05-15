@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Event Booking | Home</title>
+  <title>Gathero | Home</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet" />
@@ -59,22 +59,13 @@
     .brand {
       display: inline-flex;
       align-items: center;
-      gap: 0.8rem;
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 1.1rem;
-      font-weight: 700;
-      letter-spacing: 0.02em;
+      line-height: 0;
     }
 
-    .brand-mark {
-      display: grid;
-      place-items: center;
-      width: 2.6rem;
-      height: 2.6rem;
-      border-radius: 0.9rem;
-      background: linear-gradient(135deg, #1d1b18, #4f4134);
-      color: #fff7f1;
-      box-shadow: 0 12px 24px rgba(29, 27, 24, 0.2);
+    .brand-logo {
+      display: block;
+      height: 3.4rem;
+      width: auto;
     }
 
     .nav-actions {
@@ -358,9 +349,8 @@
 <body>
   <div class="page-shell">
     <header class="topbar">
-      <a href="index.html" class="brand" aria-label="Event Booking home">
-        <span class="brand-mark">EB</span>
-        <span>Event Booking</span>
+      <a href="index.html" class="brand" aria-label="Gathero home">
+        <img src="uploads/gathero_logo_no_icon.svg" alt="Gathero" class="brand-logo" />
       </a>
 
       <nav class="nav-actions" data-global-nav aria-label="Primary">
@@ -377,7 +367,7 @@
           <div class="eyebrow">Live events, simple booking</div>
           <h1>Plan it. Fill it. Make it unforgettable.</h1>
           <p>
-            Event Booking helps attendees discover great events and gives organizers a clean way to publish, manage, and grow them without friction.
+            Gathero helps attendees discover great events and gives organizers a clean way to publish, manage, and grow them without friction.
           </p>
 
           <div class="cta-row">

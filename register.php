@@ -169,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Create Account | Event Booking</title>
+  <title>Create Account | Gathero</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -225,9 +225,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     .auth-brand {
-      color: var(--text);
-      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      line-height: 0;
       text-decoration: none;
+    }
+
+    .auth-brand-logo {
+      display: block;
+      height: 3rem;
+      width: auto;
     }
 
     .auth-nav-actions {
@@ -490,7 +497,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
   <div class="auth-topbar">
     <div class="nav-shell">
-      <a href="index.html" class="auth-brand">Event Booking</a>
+      <a href="index.html" class="auth-brand"><img src="uploads/gathero_logo_no_icon.svg" alt="Gathero" class="auth-brand-logo"></a>
       <nav class="auth-nav-actions" data-global-nav aria-label="Global navigation">
         <a href="index.html" class="btn btn-outline-secondary">Home</a>
         <a href="events.html" class="btn btn-outline-secondary">Events</a>
@@ -505,7 +512,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="col-lg-5">
           <div class="auth-side">
             <span class="eyebrow">Create Your Account</span>
-            <h1>Join Event Booking with a cleaner signup experience.</h1>
+            <h1>Join Gathero with a cleaner signup experience.</h1>
             <p>Set up your attendee or organizer account with a form that keeps your input, explains validation clearly, and sends you straight into the proper sign-in flow.</p>
             <ul class="auth-points">
               <li><span class="point-badge">1</span><span>Add your contact details once and keep the profile ready for later updates.</span></li>
