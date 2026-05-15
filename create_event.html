@@ -69,22 +69,13 @@
     .brand {
       display: inline-flex;
       align-items: center;
-      gap: 0.8rem;
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 1.05rem;
-      font-weight: 700;
-      letter-spacing: 0.02em;
+      line-height: 0;
     }
 
-    .brand-mark {
-      width: 2.8rem;
-      height: 2.8rem;
-      display: grid;
-      place-items: center;
-      border-radius: 0.95rem;
-      color: #fff9f4;
-      background: linear-gradient(135deg, #251f1b, #5f4f43);
-      box-shadow: 0 14px 26px rgba(37, 31, 27, 0.18);
+    .brand-logo {
+      display: block;
+      height: 3.3rem;
+      width: auto;
     }
 
     .nav-actions {
@@ -488,8 +479,7 @@
   <div class="page-shell">
     <header class="topbar">
       <a href="events.html" class="brand" aria-label="Go to events page">
-        <span class="brand-mark">E</span>
-        <span>Event Booking</span>
+        <img src="uploads/gathero_logo_no_icon.svg" alt="Gathero" class="brand-logo" />
       </a>
       <div class="nav-actions">
         <a href="index.html" class="btn btn-ghost">Home</a>

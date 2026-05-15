@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Event Booking | Home</title>
+  <title>Gathero | Home</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet" />
@@ -59,22 +59,13 @@
     .brand {
       display: inline-flex;
       align-items: center;
-      gap: 0.8rem;
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 1.1rem;
-      font-weight: 700;
-      letter-spacing: 0.02em;
+      line-height: 0;
     }
 
-    .brand-mark {
-      display: grid;
-      place-items: center;
-      width: 2.6rem;
-      height: 2.6rem;
-      border-radius: 0.9rem;
-      background: linear-gradient(135deg, #1d1b18, #4f4134);
-      color: #fff7f1;
-      box-shadow: 0 12px 24px rgba(29, 27, 24, 0.2);
+    .brand-logo {
+      display: block;
+      height: 3.4rem;
+      width: auto;
     }
 
     .nav-actions {
@@ -173,24 +164,78 @@
     }
 
     .hero-panel {
-      position: relative;
-      min-height: 480px;
+      display: flex;
+      justify-content: center;
       animation: rise 1s ease 0.1s both;
     }
 
-    .showcase-card,
-    .mini-card {
-      position: absolute;
-      border: 1px solid var(--line);
-      border-radius: 1.6rem;
-      background: var(--surface);
-      backdrop-filter: blur(12px);
-      box-shadow: var(--shadow);
+    .chat-shell {
+      width: min(100%, 430px);
+      padding: 0.35rem 0;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .chat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.9rem;
+      padding: 0 0.3rem 0.25rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .chat-thread {
+      display: grid;
+      gap: 0.9rem;
+    }
+
+    .message-row {
+      display: flex;
+    }
+
+    .message-row.incoming {
+      justify-content: flex-start;
+    }
+
+    .message-row.outgoing {
+      justify-content: flex-end;
+    }
+
+    .message-bubble,
+    .showcase-card {
+      box-shadow: 0 14px 28px rgba(83, 52, 30, 0.12);
+    }
+
+    .message-bubble {
+      max-width: 84%;
+      padding: 0.95rem 1rem;
+      border: 1px solid rgba(29, 27, 24, 0.08);
+      border-radius: 1.35rem 1.35rem 1.35rem 0.35rem;
+      line-height: 1.5;
+    }
+
+    .message-row.incoming .message-bubble {
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--text);
+    }
+
+    .message-row.outgoing .message-bubble {
+      background: linear-gradient(135deg, var(--accent), #f08a4c);
+      border-color: rgba(217, 93, 57, 0.2);
+      border-radius: 1.35rem 1.35rem 0.35rem 1.35rem;
+      color: #fff;
     }
 
     .showcase-card {
-      inset: 3.3rem 0 0 2rem;
-      padding: 1.4rem;
+      padding: 1.05rem;
+      border-radius: 1.7rem;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      backdrop-filter: blur(12px);
     }
 
     .showcase-image {
@@ -218,33 +263,10 @@
       font-size: 1.55rem;
     }
 
-    .showcase-card p,
-    .mini-card p {
+    .showcase-card p {
       margin: 0;
       color: var(--muted);
       line-height: 1.5;
-    }
-
-    .mini-card {
-      padding: 1rem 1.1rem;
-      max-width: 220px;
-    }
-
-    .mini-card strong {
-      display: block;
-      margin-bottom: 0.25rem;
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 1rem;
-    }
-
-    .mini-one {
-      top: 0;
-      left: 0;
-    }
-
-    .mini-two {
-      right: 1rem;
-      bottom: 2rem;
     }
 
     .stats {
@@ -320,10 +342,6 @@
         grid-template-columns: 1fr;
       }
 
-      .hero-panel {
-        min-height: 420px;
-      }
-
       .stats,
       .feature-grid {
         grid-template-columns: 1fr;
@@ -344,13 +362,13 @@
         padding-top: 2rem;
       }
 
-      .showcase-card {
-        inset: 2.6rem 0 0 0;
+      .chat-shell {
+        width: 100%;
+        padding: 0.9rem;
       }
 
-      .mini-two {
-        right: 0;
-        bottom: 1rem;
+      .message-bubble {
+        max-width: 90%;
       }
     }
   </style>
@@ -358,9 +376,8 @@
 <body>
   <div class="page-shell">
     <header class="topbar">
-      <a href="index.html" class="brand" aria-label="Event Booking home">
-        <span class="brand-mark">EB</span>
-        <span>Event Booking</span>
+      <a href="index.html" class="brand" aria-label="Gathero home">
+        <img src="uploads/gathero_logo_no_icon.svg" alt="Gathero" class="brand-logo" />
       </a>
 
       <nav class="nav-actions" data-global-nav aria-label="Primary">
@@ -377,7 +394,7 @@
           <div class="eyebrow">Live events, simple booking</div>
           <h1>Plan it. Fill it. Make it unforgettable.</h1>
           <p>
-            Event Booking helps attendees discover great events and gives organizers a clean way to publish, manage, and grow them without friction.
+            Gathero helps attendees discover great events and gives organizers a clean way to publish, manage, and grow them without friction.
           </p>
 
           <div class="cta-row">
@@ -405,24 +422,35 @@
         </div>
 
         <div class="hero-panel" aria-hidden="true">
-          <div class="mini-card mini-one">
-            <strong>For attendees</strong>
-            <p>Find upcoming experiences and reserve a seat in a few clicks.</p>
-          </div>
-
-          <article class="showcase-card">
-            <div class="showcase-image"></div>
-            <div class="showcase-meta">
-              <span>Featured experience</span>
-              <span>Open for booking</span>
+          <div class="chat-shell">
+            <div class="chat-header">
+              <span>Gathero updates</span>
+              <span>Now</span>
             </div>
-            <h2>Discover your next event</h2>
-            <p>From workshops to live shows, keep everything in one place and move from browsing to booking without leaving the platform.</p>
-          </article>
 
-          <div class="mini-card mini-two">
-            <strong>For organizers</strong>
-            <p>Create events, manage bookings, and keep your dashboard close at hand.</p>
+            <div class="chat-thread">
+              <div class="message-row incoming">
+                <div class="message-bubble">
+                  Looking for your next plan? Browse upcoming experiences and lock in a seat in just a few taps.
+                </div>
+              </div>
+
+              <article class="showcase-card">
+                <div class="showcase-image"></div>
+                <div class="showcase-meta">
+                  <span>Featured experience</span>
+                  <span>Open for booking</span>
+                </div>
+                <h2>Discover your next event</h2>
+                <p>From workshops to live shows, keep everything in one place and move from browsing to booking without leaving the platform.</p>
+              </article>
+
+              <div class="message-row outgoing">
+                <div class="message-bubble">
+                  Hosting something? Create events, manage bookings, and keep your full organizer flow in one dashboard.
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
