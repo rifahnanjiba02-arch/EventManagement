@@ -3,6 +3,9 @@
 require_once 'session_bootstrap.php';
 header('Content-Type: application/json');
 require 'db.php';
+require_once 'event_status_schema.php';
+
+ensureEventStatusSchema($pdo);
 
 if (($_SESSION['role'] ?? null) !== 'attendee' || !isset($_SESSION['attendee_id'])) {
     http_response_code(401);
@@ -18,6 +21,8 @@ SELECT
     e.title AS event, 
     e.event_date AS date, 
     e.location, 
+    e.event_status,
+    e.cancellation_reason,
     b.booking_time,
     b.cancellation_time,
     b.status, 

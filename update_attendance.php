@@ -3,6 +3,9 @@
 require_once 'session_bootstrap.php';
 header('Content-Type: application/json');
 require 'db.php';
+require_once 'event_status_schema.php';
+
+ensureEventStatusSchema($pdo);
 
 // Get JSON POST input
 $input = json_decode(file_get_contents('php://input'), true);
@@ -34,7 +37,7 @@ if (!in_array($attendance_status, $valid_statuses)) {
 try {
     // Check if booking exists, is confirmed, and the attendance action fits the event date.
     $stmt = $pdo->prepare("
-        SELECT b.status, b.attendance_status, e.event_date
+        SELECT b.status, b.attendance_status, e.event_date, e.event_status
         FROM Booking b
         JOIN EventDetails e ON e.event_id = b.event_id
         WHERE b.attendee_id = ? AND b.event_id = ?
@@ -51,6 +54,12 @@ try {
     if ($booking['status'] !== 'confirmed') {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Booking not confirmed']);
+        exit;
+    }
+
+    if (($booking['event_status'] ?? 'scheduled') === 'cancelled') {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => 'Cancelled events cannot be checked into']);
         exit;
     }
 

@@ -2,6 +2,9 @@
 header('Content-Type: application/json');
 require 'db.php';
 require_once 'session_bootstrap.php';
+require_once 'event_status_schema.php';
+
+ensureEventStatusSchema($pdo);
 
 //  Ensure attendee is logged in
 if (!isset($_SESSION['attendee_id'])) {
@@ -21,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             INNER JOIN Booking b ON e.event_id = b.event_id
             WHERE b.attendee_id = ?
               AND b.status = 'confirmed'
+              AND e.event_status = 'scheduled'
               AND e.event_date >= CURDATE()
             ORDER BY e.event_date ASC
         ");
@@ -64,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         // Check if event exists
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM EventDetails WHERE event_id = ?");
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM EventDetails WHERE event_id = ? AND event_status = 'scheduled'");
         $stmt->execute([$event_id]);
         if ($stmt->fetchColumn() == 0) {
             http_response_code(400);

@@ -2,6 +2,9 @@
 require_once 'session_bootstrap.php';
 header('Content-Type: application/json');
 require 'db.php';
+require_once 'event_status_schema.php';
+
+ensureEventStatusSchema($pdo);
 
 // Decode JSON from request body
 $input = json_decode(file_get_contents('php://input'), true);
@@ -24,7 +27,7 @@ $attendee_id = (int) $_SESSION['attendee_id'];
 try {
     // Check if booking exists and whether it is still eligible for cancellation.
     $check = $pdo->prepare("
-        SELECT b.status, b.attendance_status, e.event_date
+        SELECT b.status, b.attendance_status, e.event_date, e.event_status
         FROM Booking b
         JOIN EventDetails e ON e.event_id = b.event_id
         WHERE b.event_id = ? AND b.attendee_id = ?
@@ -52,6 +55,12 @@ try {
     if (($booking['attendance_status'] ?? 'pending') === 'checked_in') {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Checked-in bookings cannot be cancelled']);
+        exit;
+    }
+
+    if (($booking['event_status'] ?? 'scheduled') === 'cancelled') {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => 'This event has already been cancelled by the organizer']);
         exit;
     }
 

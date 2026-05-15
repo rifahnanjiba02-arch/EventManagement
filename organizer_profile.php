@@ -2,6 +2,7 @@
 require 'db.php';
 require_once 'session_bootstrap.php';
 require_once 'collaboration_schema.php';
+require_once 'event_status_schema.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'organizer') {
     header('Location: login.php');
@@ -9,8 +10,11 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'organizer') {
 }
 
 ensureCollaborationSchema($pdo);
+ensureEventStatusSchema($pdo);
 
 $user_id = (int)$_SESSION['user_id'];
+$dashboardNotice = $_SESSION['organizer_notice'] ?? null;
+unset($_SESSION['organizer_notice']);
 
 try {
     $stmt = $pdo->prepare("
@@ -117,9 +121,103 @@ try {
         exit;
     }
 
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_event'], $_POST['event_id'])) {
+        $eventId = (int) $_POST['event_id'];
+        $cancellationReason = trim($_POST['cancellation_reason'] ?? '');
+
+        if ($cancellationReason === '' || mb_strlen($cancellationReason) < 10) {
+            $_SESSION['organizer_notice'] = [
+                'type' => 'danger',
+                'message' => 'Please provide a valid cancellation reason with at least 10 characters.'
+            ];
+            header("Location: " . $_SERVER['PHP_SELF']);
+            exit;
+        }
+
+        $pdo->beginTransaction();
+
+        $eventStmt = $pdo->prepare("
+            SELECT e.event_id, e.title, e.event_date, e.event_status
+            FROM EventDetails e
+            JOIN create_event ce ON ce.event_id = e.event_id
+            WHERE e.event_id = ? AND ce.organizer_id = ?
+            LIMIT 1
+            FOR UPDATE
+        ");
+        $eventStmt->execute([$eventId, $organizerId]);
+        $eventToCancel = $eventStmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$eventToCancel) {
+            $pdo->rollBack();
+            $_SESSION['organizer_notice'] = [
+                'type' => 'danger',
+                'message' => 'You can only cancel events assigned to your organizer account.'
+            ];
+            header("Location: " . $_SERVER['PHP_SELF']);
+            exit;
+        }
+
+        if (($eventToCancel['event_status'] ?? 'scheduled') === 'cancelled') {
+            $pdo->rollBack();
+            $_SESSION['organizer_notice'] = [
+                'type' => 'warning',
+                'message' => 'This event has already been cancelled.'
+            ];
+            header("Location: " . $_SERVER['PHP_SELF']);
+            exit;
+        }
+
+        if (($eventToCancel['event_date'] ?? '') < date('Y-m-d')) {
+            $pdo->rollBack();
+            $_SESSION['organizer_notice'] = [
+                'type' => 'danger',
+                'message' => 'Past events cannot be cancelled.'
+            ];
+            header("Location: " . $_SERVER['PHP_SELF']);
+            exit;
+        }
+
+        $cancelStmt = $pdo->prepare("
+            UPDATE EventDetails
+            SET event_status = 'cancelled',
+                cancellation_reason = ?,
+                cancellation_time = NOW()
+            WHERE event_id = ?
+        ");
+        $cancelStmt->execute([$cancellationReason, $eventId]);
+
+        $attendeeStmt = $pdo->prepare("
+            SELECT DISTINCT u.user_id
+            FROM Booking b
+            JOIN Attendee a ON a.attendee_id = b.attendee_id
+            JOIN Users u ON u.user_id = a.user_id
+            WHERE b.event_id = ? AND b.status = 'confirmed'
+        ");
+        $attendeeStmt->execute([$eventId]);
+        $attendeeUserIds = $attendeeStmt->fetchAll(PDO::FETCH_COLUMN);
+
+        foreach ($attendeeUserIds as $attendeeUserId) {
+            createNotification(
+                $pdo,
+                (int) $attendeeUserId,
+                'event_cancelled',
+                sprintf('"%s" was cancelled by the organizer. Reason: %s', $eventToCancel['title'], $cancellationReason),
+                $eventId
+            );
+        }
+
+        $pdo->commit();
+        $_SESSION['organizer_notice'] = [
+            'type' => 'success',
+            'message' => sprintf('"%s" has been cancelled and attendees have been notified.', $eventToCancel['title'])
+        ];
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit;
+    }
+
     $eventsStmt = $pdo->prepare("
-        SELECT e.event_id, e.title, e.event_date, e.location,
-               COUNT(b.booking_id) AS booking_count
+        SELECT e.event_id, e.title, e.event_date, e.location, e.event_status, e.cancellation_reason,
+               COALESCE(SUM(CASE WHEN b.status = 'confirmed' THEN 1 ELSE 0 END), 0) AS booking_count
         FROM EventDetails e
         LEFT JOIN Booking b ON e.event_id = b.event_id
         JOIN create_event ce ON e.event_id = ce.event_id
@@ -543,6 +641,12 @@ try {
       </div>
     </div>
 
+    <?php if ($dashboardNotice): ?>
+      <div class="alert alert-<?= htmlspecialchars($dashboardNotice['type']) ?> mb-4" role="alert">
+        <?= htmlspecialchars($dashboardNotice['message']) ?>
+      </div>
+    <?php endif; ?>
+
     <div class="row g-4">
       <div class="col-lg-4">
         <div class="profile-card profile-upload-card">
@@ -746,19 +850,45 @@ try {
               <th>Event Name</th>
               <th>Date</th>
               <th>Location</th>
+              <th>Status</th>
               <th>Total Bookings</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             <?php if (count($events) === 0): ?>
-              <tr><td colspan="4">No accepted events found.</td></tr>
+              <tr><td colspan="6">No accepted events found.</td></tr>
             <?php else: ?>
               <?php foreach ($events as $event): ?>
                 <tr>
                   <td><?= htmlspecialchars($event['title']) ?></td>
                   <td><?= htmlspecialchars($event['event_date']) ?></td>
                   <td><?= htmlspecialchars($event['location']) ?></td>
+                  <td>
+                    <?php if (($event['event_status'] ?? 'scheduled') === 'cancelled'): ?>
+                      <span class="badge text-bg-danger">Cancelled</span>
+                      <div class="mini-muted mt-1"><?= htmlspecialchars($event['cancellation_reason'] ?? '') ?></div>
+                    <?php else: ?>
+                      <span class="badge text-bg-success">Scheduled</span>
+                    <?php endif; ?>
+                  </td>
                   <td><?= htmlspecialchars($event['booking_count']) ?></td>
+                  <td>
+                    <?php if (($event['event_status'] ?? 'scheduled') === 'cancelled' || ($event['event_date'] ?? '') < date('Y-m-d')): ?>
+                      <span class="mini-muted">No actions available</span>
+                    <?php else: ?>
+                      <button
+                        type="button"
+                        class="btn btn-outline-danger btn-sm"
+                        data-bs-toggle="modal"
+                        data-bs-target="#cancelEventModal"
+                        data-event-id="<?= (int) $event['event_id'] ?>"
+                        data-event-title="<?= htmlspecialchars($event['title'], ENT_QUOTES) ?>"
+                      >
+                        Cancel Event
+                      </button>
+                    <?php endif; ?>
+                  </td>
                 </tr>
               <?php endforeach; ?>
             <?php endif; ?>
@@ -803,6 +933,58 @@ try {
     </div>
   </div>
 
+  <div class="modal fade" id="cancelEventModal" tabindex="-1" aria-labelledby="cancelEventModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form method="POST" novalidate>
+          <div class="modal-header">
+            <h5 class="modal-title" id="cancelEventModalLabel">Cancel Event</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" name="cancel_event" value="1" />
+            <input type="hidden" name="event_id" id="cancelEventId" value="" />
+            <p class="mb-2">You're cancelling <strong id="cancelEventName">this event</strong>.</p>
+            <div class="mb-3">
+              <label for="cancellation_reason" class="form-label">Valid reason</label>
+              <textarea
+                id="cancellation_reason"
+                name="cancellation_reason"
+                class="form-control"
+                rows="4"
+                minlength="10"
+                maxlength="500"
+                required
+                placeholder="Explain why the event needs to be cancelled."
+              ></textarea>
+              <div class="form-text">This reason is required and will be shown to affected attendees.</div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep Event</button>
+            <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const cancelEventModal = document.getElementById('cancelEventModal');
+
+    if (cancelEventModal) {
+      cancelEventModal.addEventListener('show.bs.modal', (event) => {
+        const button = event.relatedTarget;
+        const eventIdInput = document.getElementById('cancelEventId');
+        const eventNameLabel = document.getElementById('cancelEventName');
+        const reasonField = document.getElementById('cancellation_reason');
+
+        eventIdInput.value = button?.getAttribute('data-event-id') || '';
+        eventNameLabel.textContent = button?.getAttribute('data-event-title') || 'this event';
+        reasonField.value = '';
+      });
+    }
+  </script>
 </body>
 </html>

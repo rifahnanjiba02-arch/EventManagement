@@ -3,6 +3,9 @@
 require_once 'session_bootstrap.php';
 header('Content-Type: application/json');
 require 'db.php';
+require_once 'event_status_schema.php';
+
+ensureEventStatusSchema($pdo);
 
 // Parse JSON input
 $input = json_decode(file_get_contents('php://input'), true);
@@ -25,7 +28,7 @@ $attendee_id = (int) $_SESSION['attendee_id'];
 
 try {
     // Check if event exists and is not in the past
-    $stmt = $pdo->prepare("SELECT event_date FROM EventDetails WHERE event_id = ?");
+    $stmt = $pdo->prepare("SELECT event_date, event_status FROM EventDetails WHERE event_id = ?");
     $stmt->execute([$event_id]);
     $event = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -39,6 +42,11 @@ try {
 
     if ($eventDate < $today) {
         echo json_encode(['success' => false, 'error' => 'Cannot book past events']);
+        exit;
+    }
+
+    if (($event['event_status'] ?? 'scheduled') === 'cancelled') {
+        echo json_encode(['success' => false, 'error' => 'This event has been cancelled']);
         exit;
     }
 
