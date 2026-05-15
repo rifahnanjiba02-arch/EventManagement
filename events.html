@@ -227,26 +227,82 @@
     }
 
     .hero-panel {
-      position: relative;
-      min-height: 430px;
+      display: flex;
+      justify-content: center;
     }
 
-    .feature-stack,
+    .chat-shell {
+      width: min(100%, 440px);
+      padding: 0.35rem 0;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .chat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.9rem;
+      padding: 0 0.3rem 0.25rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .chat-thread {
+      display: grid;
+      gap: 0.9rem;
+    }
+
+    .message-row {
+      display: flex;
+    }
+
+    .message-row.incoming {
+      justify-content: flex-start;
+    }
+
+    .message-row.outgoing {
+      justify-content: flex-end;
+    }
+
+    .message-bubble,
     .spotlight-card {
-      position: absolute;
+      box-shadow: 0 14px 28px rgba(83, 52, 30, 0.12);
+    }
+
+    .message-bubble {
+      max-width: 84%;
+      padding: 0.95rem 1rem;
+      border: 1px solid rgba(29, 27, 24, 0.08);
+      border-radius: 1.45rem;
+      border-radius: 1.35rem 1.35rem 1.35rem 0.35rem;
+      line-height: 1.5;
+    }
+
+    .message-row.incoming .message-bubble {
+      background: rgba(255, 255, 255, 0.94);
+      color: var(--text);
+    }
+
+    .message-row.outgoing .message-bubble {
+      background: linear-gradient(135deg, var(--accent), #f08a4c);
+      border-color: rgba(217, 93, 57, 0.18);
+      border-radius: 1.35rem 1.35rem 0.35rem 1.35rem;
+      color: #fff;
+    }
+
+    .spotlight-card {
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: var(--radius-lg);
-      box-shadow: var(--shadow);
       overflow: hidden;
-    }
-
-    .spotlight-card {
-      inset: 2rem 0 0 2rem;
       background: linear-gradient(180deg, rgba(29, 26, 23, 0.06), rgba(29, 26, 23, 0.42)),
         url("https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1200&q=80") center/cover;
       color: #fff;
       display: flex;
       align-items: flex-end;
+      min-height: 320px;
       padding: 1.4rem;
     }
 
@@ -261,38 +317,6 @@
       max-width: 20rem;
       color: rgba(255, 255, 255, 0.86);
       line-height: 1.5;
-    }
-
-    .feature-stack {
-      padding: 1rem 1.1rem;
-      max-width: 220px;
-      backdrop-filter: blur(12px);
-      background: rgba(32, 27, 23, 0.8);
-      color: #fff6ef;
-    }
-
-    .feature-stack strong {
-      display: block;
-      margin-bottom: 0.3rem;
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 1rem;
-    }
-
-    .feature-one {
-      top: 0;
-      left: 0;
-    }
-
-    .feature-two {
-      right: 1rem;
-      bottom: 1rem;
-      background: rgba(255, 248, 242, 0.88);
-      color: var(--text);
-      border-color: rgba(29, 27, 24, 0.08);
-    }
-
-    .feature-two p {
-      color: var(--muted);
     }
 
     .section-block {
@@ -577,10 +601,6 @@
         grid-template-columns: 1fr;
       }
 
-      .hero-panel {
-        min-height: 390px;
-      }
-
       .section-header {
         flex-direction: column;
         align-items: flex-start;
@@ -606,12 +626,13 @@
         grid-template-columns: 1fr;
       }
 
-      .spotlight-card {
-        inset: 2.2rem 0 0 0;
+      .chat-shell {
+        width: 100%;
+        padding: 0.9rem;
       }
 
-      .feature-two {
-        right: 0;
+      .message-bubble {
+        max-width: 90%;
       }
 
       .card-footer {
@@ -670,21 +691,32 @@
         </div>
 
         <div class="hero-panel" aria-hidden="true">
-          <div class="feature-stack feature-one">
-            <strong>Live availability</strong>
-            <p>Upcoming events stay separated from finished ones so booking choices are easier to scan.</p>
-          </div>
-
-          <article class="spotlight-card">
-            <div>
-              <h2>From browse to booked</h2>
-              <p>A stronger events layout with clearer status, better hierarchy, and room to spotlight each event.</p>
+          <div class="chat-shell">
+            <div class="chat-header">
+              <span>Gathero messages</span>
+              <span>Today</span>
             </div>
-          </article>
 
-          <div class="feature-stack feature-two">
-            <strong>Role-aware actions</strong>
-            <p>Attendees can book instantly, while guests see a clear path to sign in first.</p>
+            <div class="chat-thread">
+              <div class="message-row incoming">
+                <div class="message-bubble">
+                  Looking for something soon? Upcoming events are separated from past ones so the best booking options are easier to scan.
+                </div>
+              </div>
+
+              <article class="spotlight-card">
+                <div>
+                  <h2>From browse to booked</h2>
+                  <p>A stronger events layout with clearer status, better hierarchy, and room to spotlight each event.</p>
+                </div>
+              </article>
+
+              <div class="message-row outgoing">
+                <div class="message-bubble">
+                  Ready to book? Attendees can jump straight in, while guests get a clear sign-in path before checkout.
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
