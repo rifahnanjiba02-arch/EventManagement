@@ -1,45 +1,637 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>My Bookings</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Event Booking | My Bookings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f6efe5;
+      --surface: rgba(255, 250, 245, 0.82);
+      --surface-strong: #fffaf5;
+      --text: #1d1b18;
+      --muted: #635d56;
+      --accent: #d95d39;
+      --accent-dark: #a94224;
+      --accent-soft: #ffdcca;
+      --cool: #2f6c67;
+      --cool-soft: rgba(47, 108, 103, 0.12);
+      --warn: #8a5a17;
+      --warn-soft: rgba(245, 170, 50, 0.16);
+      --line: rgba(29, 27, 24, 0.1);
+      --shadow: 0 22px 60px rgba(83, 52, 30, 0.14);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Source Sans 3", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 183, 130, 0.35), transparent 28%),
+        radial-gradient(circle at right 15%, rgba(47, 108, 103, 0.14), transparent 20%),
+        linear-gradient(180deg, #fff9f2 0%, var(--bg) 100%);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    .page-shell {
+      width: min(1200px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 1rem 0 4rem;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 0 1.3rem;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.8rem;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 2.7rem;
+      height: 2.7rem;
+      border-radius: 0.95rem;
+      background: linear-gradient(135deg, #1d1b18, #54463a);
+      color: #fff7f1;
+      box-shadow: 0 14px 28px rgba(29, 27, 24, 0.18);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 2.95rem;
+      padding: 0.85rem 1.2rem;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-weight: 700;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-primary {
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent), #f08a4c);
+      box-shadow: 0 14px 28px rgba(217, 93, 57, 0.25);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, var(--accent-dark), var(--accent));
+    }
+
+    .btn-secondary {
+      border-color: rgba(29, 27, 24, 0.12);
+      background: rgba(255, 255, 255, 0.62);
+      color: var(--text);
+    }
+
+    .btn-success {
+      color: #fff;
+      background: linear-gradient(135deg, var(--cool), #47a096);
+      box-shadow: 0 14px 28px rgba(47, 108, 103, 0.2);
+    }
+
+    .btn-danger {
+      color: #fff;
+      background: linear-gradient(135deg, #bb4a43, #d76a4e);
+      box-shadow: 0 14px 28px rgba(187, 74, 67, 0.18);
+    }
+
+    .btn[disabled] {
+      opacity: 0.6;
+      cursor: wait;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .hero-copy,
+    .summary-strip,
+    .section-block {
+      animation: rise 0.7s ease both;
+    }
+
+    .page-intro {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 1rem;
+      margin: 1rem 0 1.25rem;
+    }
+
+    .page-intro h1 {
+      margin: 0 0 0.45rem;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+
+    .page-intro p {
+      max-width: 40rem;
+      margin: 0;
+      font-size: 1rem;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+
+    .intro-actions {
+      display: flex;
+      gap: 0.9rem;
+      flex-wrap: wrap;
+    }
+
+    .summary-strip {
+      margin-bottom: 2rem;
+      padding: 1rem;
+      border-radius: var(--radius-xl);
+      background: rgba(255, 255, 255, 0.52);
+      border: 1px solid rgba(29, 27, 24, 0.07);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.9rem;
+    }
+
+    .stat {
+      padding: 1rem 1.05rem;
+      border-radius: 1.2rem;
+      background: rgba(255, 255, 255, 0.74);
+      border: 1px solid rgba(29, 27, 24, 0.08);
+    }
+
+    .stat strong {
+      display: block;
+      margin-bottom: 0.2rem;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.55rem;
+    }
+
+    .page-message {
+      margin-top: 1rem;
+      padding: 1rem 1.1rem;
+      border-radius: 1rem;
+      background: rgba(217, 93, 57, 0.12);
+      color: var(--accent-dark);
+      border: 1px solid rgba(217, 93, 57, 0.16);
+    }
+
+    .section-block {
+      margin-top: 2rem;
+      padding: 1.4rem;
+      border-radius: var(--radius-xl);
+      background: rgba(255, 255, 255, 0.48);
+      border: 1px solid rgba(29, 27, 24, 0.07);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .section-header h2 {
+      margin: 0.35rem 0 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(1.8rem, 4vw, 2.5rem);
+      letter-spacing: -0.03em;
+    }
+
+    .section-header p {
+      margin: 0;
+      max-width: 34rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .section-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.4rem 0.8rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .bookings-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .booking-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+      padding: 1.35rem;
+      border-radius: var(--radius-lg);
+      background: var(--surface-strong);
+      border: 1px solid rgba(29, 27, 24, 0.08);
+      box-shadow: 0 14px 28px rgba(83, 52, 30, 0.08);
+      transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+
+    .booking-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 22px 38px rgba(83, 52, 30, 0.14);
+      border-color: rgba(217, 93, 57, 0.24);
+    }
+
+    .booking-card.cancelled {
+      background: rgba(255, 247, 242, 0.9);
+    }
+
+    .booking-card.completed {
+      background: rgba(250, 248, 245, 0.95);
+    }
+
+    .booking-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.8rem;
+      margin-bottom: 1rem;
+    }
+
+    .booking-card h3 {
+      margin: 0 0 0.45rem;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.45rem;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+
+    .booking-summary {
+      margin: 0 0 1.15rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .status-chip,
+    .attendance-chip,
+    .booking-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.42rem 0.78rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .booking-badge {
+      background: rgba(29, 27, 24, 0.06);
+      color: var(--muted);
+    }
+
+    .status-chip.confirmed,
+    .attendance-chip.checked-in {
+      background: var(--cool-soft);
+      color: var(--cool);
+    }
+
+    .status-chip.cancelled {
+      background: rgba(187, 74, 67, 0.14);
+      color: #a03f39;
+    }
+
+    .attendance-chip.pending,
+    .status-chip.pending {
+      background: var(--warn-soft);
+      color: var(--warn);
+    }
+
+    .attendance-chip.default,
+    .status-chip.default {
+      background: rgba(29, 27, 24, 0.08);
+      color: var(--muted);
+    }
+
+    .booking-meta {
+      display: grid;
+      gap: 0.75rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .meta-row {
+      display: grid;
+      grid-template-columns: 44px 1fr;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .meta-icon {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: rgba(29, 27, 24, 0.05);
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .meta-label {
+      display: block;
+      margin-bottom: 0.1rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .meta-value {
+      font-size: 1rem;
+      line-height: 1.4;
+      color: var(--text);
+    }
+
+    .booking-footer {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 0.8rem;
+      margin-top: auto;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(29, 27, 24, 0.08);
+    }
+
+    .booking-note {
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.45;
+    }
+
+    .booking-actions {
+      display: flex;
+      gap: 0.7rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .empty-state,
+    .loading-state {
+      display: grid;
+      place-items: center;
+      min-height: 220px;
+      padding: 2rem;
+      border-radius: var(--radius-lg);
+      border: 1px dashed rgba(29, 27, 24, 0.16);
+      background: rgba(255, 255, 255, 0.45);
+      text-align: center;
+    }
+
+    .empty-state strong,
+    .loading-state strong {
+      display: block;
+      margin-bottom: 0.45rem;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.2rem;
+    }
+
+    .empty-state p,
+    .loading-state p {
+      margin: 0;
+      max-width: 28rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .loading-dots {
+      display: inline-flex;
+      gap: 0.35rem;
+      margin-bottom: 0.9rem;
+    }
+
+    .loading-dots span {
+      width: 0.55rem;
+      height: 0.55rem;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 1s infinite ease-in-out;
+    }
+
+    .loading-dots span:nth-child(2) {
+      animation-delay: 0.12s;
+    }
+
+    .loading-dots span:nth-child(3) {
+      animation-delay: 0.24s;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes pulse {
+      0%, 80%, 100% {
+        transform: scale(0.8);
+        opacity: 0.45;
+      }
+      40% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    @media (max-width: 1024px) {
+      .page-intro {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .bookings-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .page-shell {
+        width: min(100% - 1.2rem, 1200px);
+      }
+
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .booking-footer {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .booking-actions .btn,
+      .intro-actions .btn {
+        width: 100%;
+      }
+    }
+  </style>
 </head>
 <body>
-  <nav class="navbar navbar-dark bg-dark px-4">
-    <span class="navbar-brand">My Bookings</span>
-    <div>
-      <a href="index.html" class="btn btn-light me-2">Home</a>
-      <a href="attendee_profile.php" class="btn btn-light me-2">My Profile</a>
-      <a href="events.html" class="btn btn-light me-2">Browse Events</a>
-      <a href="logout.php" class="btn btn-outline-light">Log Out</a>
-    </div>
-  </nav>
+  <div class="page-shell">
+    <header class="topbar">
+      <a href="index.html" class="brand" aria-label="Event Booking home">
+        <span class="brand-mark">EB</span>
+        <span>Event Booking</span>
+      </a>
 
-  <div class="container mt-5">
-    <h2>My Booked Events</h2>
-    <table class="table table-bordered mt-4" id="bookingsTable">
-      <thead class="table-dark">
-        <tr>
-          <th>Event</th>
-          <th>Date</th>
-          <th>Location</th>
-          <th>Status</th>
-          <th>Attendance</th>
-          <th>Total Participants</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="bookingsBody">
-        <!-- Data will be inserted here -->
-      </tbody>
-    </table>
+      <nav class="nav-actions" aria-label="Primary">
+        <a href="index.html" class="btn btn-secondary">Home</a>
+        <a href="events.html" class="btn btn-secondary">Browse Events</a>
+        <a href="attendee_profile.php" class="btn btn-secondary">My Profile</a>
+        <a href="logout.php" class="btn btn-primary">Log Out</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero-copy">
+        <div class="page-intro">
+          <div>
+            <h1>My Bookings</h1>
+            <p>Review upcoming plans, check in on event day, leave feedback, and manage active reservations from one focused page.</p>
+          </div>
+
+          <div class="intro-actions">
+            <a href="events.html" class="btn btn-secondary">Book Another Event</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="summary-strip" aria-label="Booking overview">
+        <div class="stats">
+          <div class="stat">
+            <strong id="totalBookings">0</strong>
+            Total bookings in your account
+          </div>
+          <div class="stat">
+            <strong id="upcomingBookings">0</strong>
+            Upcoming events still ahead
+          </div>
+          <div class="stat">
+            <strong id="checkedInBookings">0</strong>
+            Events you have checked into
+          </div>
+        </div>
+      </section>
+
+      <div id="pageMessage" class="page-message" hidden></div>
+
+      <section class="section-block" id="bookingsSection">
+        <div class="section-header">
+          <div>
+            <div class="section-pill">My schedule</div>
+            <h2>Booked events and attendance status</h2>
+          </div>
+          <p>Upcoming, completed, and cancelled bookings all stay in one responsive layout that works cleanly on desktop and mobile.</p>
+        </div>
+        <div id="bookingsContainer" aria-live="polite"></div>
+      </section>
+    </main>
   </div>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     let attendeeId = urlParams.get('attendee_id');
+
+    const bookingsContainer = document.getElementById('bookingsContainer');
+    const pageMessage = document.getElementById('pageMessage');
+    const totalBookings = document.getElementById('totalBookings');
+    const upcomingBookings = document.getElementById('upcomingBookings');
+    const checkedInBookings = document.getElementById('checkedInBookings');
+
+    renderLoadingState();
 
     async function ensureAttendeeSession() {
       if (attendeeId) {
@@ -66,71 +658,210 @@
       return false;
     }
 
+    function showPageMessage(message) {
+      pageMessage.textContent = message;
+      pageMessage.hidden = false;
+    }
+
+    function hidePageMessage() {
+      pageMessage.hidden = true;
+      pageMessage.textContent = '';
+    }
+
+    function renderLoadingState() {
+      bookingsContainer.innerHTML = `
+        <div class="loading-state">
+          <div>
+            <div class="loading-dots" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <strong>Loading your bookings</strong>
+            <p>Please wait while we prepare your latest event activity.</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderEmptyState() {
+      bookingsContainer.innerHTML = `
+        <div class="empty-state">
+          <div>
+            <strong>No bookings yet</strong>
+            <p>Your future reservations and attendance updates will show up here as soon as you book your first event.</p>
+          </div>
+        </div>
+      `;
+    }
+
     async function fetchBookings() {
+      renderLoadingState();
+
       try {
         const response = await fetch(`get_bookings.php?attendee_id=${encodeURIComponent(attendeeId)}`);
-        if (!response.ok) throw new Error('Failed to fetch bookings');
+        if (!response.ok) {
+          throw new Error('Failed to fetch bookings');
+        }
+
         const bookings = await response.json();
+        hidePageMessage();
 
-        const tbody = document.getElementById('bookingsBody');
-        tbody.innerHTML = '';
+        if (!Array.isArray(bookings) || bookings.length === 0) {
+          updateStats([]);
+          renderEmptyState();
+          return;
+        }
 
-        bookings.forEach(booking => {
-          const tr = document.createElement('tr');
-
-          const eventDate = new Date(booking.date);
-          const today = new Date();
-          // Normalize time to ignore hours/minutes
-          const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
-          const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-          const isToday = eventDay.getTime() === todayDay.getTime();
-
-          const canCheckIn = booking.status.toLowerCase() === 'confirmed' 
-                             && booking.attendance.toLowerCase() === 'pending' 
-                             && isToday;
-
-          tr.innerHTML = `
-            <td>${escapeHtml(booking.event)}</td>
-            <td>${escapeHtml(booking.date)}</td>
-            <td>${escapeHtml(booking.location)}</td>
-            <td>${capitalize(booking.status)}</td>
-            <td id="attendance-${booking.event_id}">${capitalize(booking.attendance)}</td>
-            <td>${booking.total_participants}</td>
-            <td>
-              ${canCheckIn 
-                ? `<button class="btn btn-sm btn-success me-2" onclick="checkIn(${booking.event_id})">Check In</button>`
-                : ''
-              }
-              ${booking.status.toLowerCase() === 'confirmed' 
-                ? `
-                  <button class="btn btn-sm btn-primary me-2" onclick="goToFeedback('${escapeHtml(booking.event)}')">Leave Feedback</button>
-                  ${booking.attendance.toLowerCase() !== 'checked_in' 
-                    ? `<button class="btn btn-sm btn-danger" onclick="cancelBooking(${booking.event_id})">Cancel Booking</button>`
-                    : '<span class="text-muted">Already Checked In</span>'
-                  }
-                `
-                : '<span class="text-muted">Unavailable</span>'
-              }
-            </td>
-          `;
-
-          tbody.appendChild(tr);
-        });
+        updateStats(bookings);
+        renderBookings(bookings);
       } catch (error) {
         console.error(error);
-        alert('Error loading bookings.');
+        updateStats([]);
+        showPageMessage('We could not load your bookings right now. Please refresh the page and try again.');
+        bookingsContainer.innerHTML = `
+          <div class="empty-state">
+            <div>
+              <strong>Bookings unavailable</strong>
+              <p>Your booking list could not be loaded at the moment.</p>
+            </div>
+          </div>
+        `;
       }
     }
 
+    function updateStats(bookings) {
+      const today = getTodayStart();
+      const upcoming = bookings.filter(booking => {
+        const eventDate = parseEventDate(booking.date);
+        return eventDate && eventDate.getTime() >= today.getTime() && normalizeStatus(booking.status) !== 'cancelled';
+      });
+      const checkedIn = bookings.filter(booking => normalizeAttendance(booking.attendance) === 'checked_in');
+
+      totalBookings.textContent = bookings.length;
+      upcomingBookings.textContent = upcoming.length;
+      checkedInBookings.textContent = checkedIn.length;
+    }
+
+    function renderBookings(bookings) {
+      const sortedBookings = [...bookings].sort((left, right) => {
+        const leftDate = parseEventDate(left.date);
+        const rightDate = parseEventDate(right.date);
+        return (rightDate ? rightDate.getTime() : 0) - (leftDate ? leftDate.getTime() : 0);
+      });
+
+      const cards = sortedBookings.map(createBookingCard).join('');
+      bookingsContainer.innerHTML = `<div class="bookings-grid">${cards}</div>`;
+      wireBookingActions();
+    }
+
+    function createBookingCard(booking) {
+      const status = normalizeStatus(booking.status);
+      const attendance = normalizeAttendance(booking.attendance);
+      const dateContext = getDateContext(booking.date, status);
+      const isToday = dateContext.state === 'today';
+      const canCheckIn = status === 'confirmed' && attendance === 'pending' && isToday;
+      const canCancel = status === 'confirmed' && attendance !== 'checked_in';
+      const cardStateClass = status === 'cancelled'
+        ? 'cancelled'
+        : dateContext.state === 'past'
+          ? 'completed'
+          : '';
+
+      return `
+        <article class="booking-card ${cardStateClass}">
+          <div class="booking-top">
+            <div>
+              <div class="booking-badge">${escapeHtml(dateContext.label)}</div>
+              <h3>${escapeHtml(booking.event || 'Untitled Event')}</h3>
+            </div>
+            <div>
+              <span class="status-chip ${escapeHtml(getChipClass(status))}">${escapeHtml(capitalizeLabel(status))}</span>
+            </div>
+          </div>
+
+          <p class="booking-summary">${escapeHtml(getBookingSummary(status, attendance, dateContext))}</p>
+
+          <div class="booking-meta">
+            <div class="meta-row">
+              <div class="meta-icon" aria-hidden="true">DT</div>
+              <div>
+                <span class="meta-label">Date</span>
+                <div class="meta-value">${escapeHtml(formatEventDate(booking.date))}</div>
+              </div>
+            </div>
+            <div class="meta-row">
+              <div class="meta-icon" aria-hidden="true">GO</div>
+              <div>
+                <span class="meta-label">Location</span>
+                <div class="meta-value">${escapeHtml(booking.location || 'Location to be announced')}</div>
+              </div>
+            </div>
+            <div class="meta-row">
+              <div class="meta-icon" aria-hidden="true">AT</div>
+              <div>
+                <span class="meta-label">Attendance</span>
+                <div class="meta-value">
+              <span class="attendance-chip ${escapeHtml(getChipClass(attendance))}" id="attendance-${escapeHtml(String(booking.event_id))}">${escapeHtml(capitalizeLabel(attendance))}</span>
+                </div>
+              </div>
+            </div>
+            <div class="meta-row">
+              <div class="meta-icon" aria-hidden="true">GR</div>
+              <div>
+                <span class="meta-label">Participants</span>
+                <div class="meta-value">${escapeHtml(String(booking.total_participants || 0))} attendees booked</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="booking-footer">
+            <div class="booking-note">${escapeHtml(getBookingNote(status, attendance, dateContext, canCheckIn))}</div>
+            <div class="booking-actions">
+              ${canCheckIn ? `<button class="btn btn-success" data-action="check-in" data-event-id="${escapeHtml(String(booking.event_id))}">Check In</button>` : ''}
+              ${status === 'confirmed' ? `<button class="btn btn-secondary" data-action="feedback" data-event-name="${escapeHtml(booking.event || '')}">Leave Feedback</button>` : ''}
+              ${canCancel ? `<button class="btn btn-danger" data-action="cancel-booking" data-event-id="${escapeHtml(String(booking.event_id))}">Cancel Booking</button>` : ''}
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function wireBookingActions() {
+      const actionButtons = bookingsContainer.querySelectorAll('[data-action]');
+
+      actionButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const action = button.dataset.action;
+
+          if (action === 'check-in') {
+            checkIn(Number(button.dataset.eventId));
+            return;
+          }
+
+          if (action === 'feedback') {
+            goToFeedback(button.dataset.eventName || '');
+            return;
+          }
+
+          if (action === 'cancel-booking') {
+            cancelBooking(Number(button.dataset.eventId));
+          }
+        });
+      });
+    }
+
     async function checkIn(eventId) {
-      if (!confirm('Confirm Check In for this event?')) return;
+      if (!confirm('Confirm check in for this event?')) {
+        return;
+      }
 
       try {
         const response = await fetch('update_attendance.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            attendee_id: parseInt(attendeeId),
+            attendee_id: parseInt(attendeeId, 10),
             event_id: eventId,
             attendance_status: 'checked_in'
           })
@@ -140,8 +871,7 @@
 
         if (result.success) {
           alert('Checked in successfully!');
-          document.getElementById(`attendance-${eventId}`).textContent = 'Checked In';
-          fetchBookings(); // refresh list
+          fetchBookings();
         } else {
           alert('Failed to check in: ' + (result.error || 'Unknown error'));
         }
@@ -158,13 +888,15 @@
     }
 
     async function cancelBooking(eventId) {
-      if (!confirm('Are you sure you want to cancel this booking?')) return;
+      if (!confirm('Are you sure you want to cancel this booking?')) {
+        return;
+      }
 
       try {
         const response = await fetch('cancel_booking.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ event_id: eventId, attendee_id: parseInt(attendeeId) })
+          body: JSON.stringify({ event_id: eventId, attendee_id: parseInt(attendeeId, 10) })
         });
         const result = await response.json();
 
@@ -180,20 +912,164 @@
       }
     }
 
-    function capitalize(str) {
-      if (!str) return '';
-      return str.charAt(0).toUpperCase() + str.slice(1);
+    function getBookingSummary(status, attendance, dateContext) {
+      if (status === 'cancelled') {
+        return 'This reservation has been cancelled and is kept here for your record.';
+      }
+
+      if (attendance === 'checked_in') {
+        return 'You have already checked into this event, and your attendance is recorded.';
+      }
+
+      if (dateContext.state === 'today') {
+        return 'This event is happening today, so your attendance action becomes the main next step.';
+      }
+
+      if (dateContext.state === 'past') {
+        return 'This event date has passed. You can still review your attendance and leave feedback.';
+      }
+
+      return `Your booking is active and ${dateContext.summary.toLowerCase()}`;
+    }
+
+    function getBookingNote(status, attendance, dateContext, canCheckIn) {
+      if (status === 'cancelled') {
+        return 'Cancelled bookings cannot be checked in or changed.';
+      }
+
+      if (attendance === 'checked_in') {
+        return 'Already checked in. You can still leave feedback whenever you are ready.';
+      }
+
+      if (canCheckIn) {
+        return 'Check-in is open today for this confirmed booking.';
+      }
+
+      if (dateContext.state === 'past') {
+        return 'The event date has passed, so live attendance actions are closed.';
+      }
+
+      return 'Your booking is still active and ready for the event date.';
+    }
+
+    function getDateContext(dateString, status) {
+      const eventDate = parseEventDate(dateString);
+
+      if (!eventDate) {
+        return {
+          state: 'unknown',
+          label: 'Scheduled',
+          summary: 'scheduled for a future date'
+        };
+      }
+
+      const today = getTodayStart();
+      const diffDays = Math.round((eventDate.getTime() - today.getTime()) / 86400000);
+
+      if (status === 'cancelled') {
+        return {
+          state: 'cancelled',
+          label: 'Cancelled',
+          summary: 'was cancelled before it could take place'
+        };
+      }
+
+      if (diffDays < 0) {
+        return {
+          state: 'past',
+          label: 'Completed',
+          summary: 'already took place'
+        };
+      }
+
+      if (diffDays === 0) {
+        return {
+          state: 'today',
+          label: 'Today',
+          summary: 'is happening today'
+        };
+      }
+
+      if (diffDays === 1) {
+        return {
+          state: 'tomorrow',
+          label: 'Tomorrow',
+          summary: 'is happening tomorrow'
+        };
+      }
+
+      return {
+        state: 'upcoming',
+        label: `${diffDays} Days Away`,
+        summary: `starts in ${diffDays} days`
+      };
+    }
+
+    function getChipClass(value) {
+      if (value === 'confirmed' || value === 'checked_in') {
+        return value === 'checked_in' ? 'checked-in' : 'confirmed';
+      }
+
+      if (value === 'cancelled' || value === 'pending') {
+        return value;
+      }
+
+      return 'default';
+    }
+
+    function normalizeStatus(status) {
+      return String(status || '').trim().toLowerCase().replace(/\s+/g, '_');
+    }
+
+    function normalizeAttendance(attendance) {
+      return String(attendance || '').trim().toLowerCase().replace(/\s+/g, '_');
+    }
+
+    function parseEventDate(dateString) {
+      if (!dateString) {
+        return null;
+      }
+
+      const date = new Date(`${dateString}T00:00:00`);
+      if (Number.isNaN(date.getTime())) {
+        return null;
+      }
+
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    }
+
+    function getTodayStart() {
+      const today = new Date();
+      return new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    }
+
+    function formatEventDate(dateString) {
+      const date = parseEventDate(dateString);
+      if (!date) {
+        return dateString || 'Date to be announced';
+      }
+
+      return new Intl.DateTimeFormat('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      }).format(date);
+    }
+
+    function capitalizeLabel(value) {
+      const text = String(value || '').replace(/_/g, ' ');
+      return text.replace(/\b\w/g, letter => letter.toUpperCase());
     }
 
     function escapeHtml(text) {
-      const map = {
+      return String(text).replace(/[&<>"']/g, character => ({
         '&': '&amp;',
         '<': '&lt;',
         '>': '&gt;',
         '"': '&quot;',
         "'": '&#039;'
-      };
-      return text.replace(/[&<>"']/g, m => map[m]);
+      }[character]));
     }
 
     ensureAttendeeSession().then(hasSession => {
