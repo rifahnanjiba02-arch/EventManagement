@@ -91,6 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="global_nav.js" defer></script>
   <style>
     :root {
       --bg: #f3f6fb;
@@ -121,8 +122,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
     }
 
+    .auth-topbar {
+      width: min(1040px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding-top: 1.25rem;
+    }
+
+    .auth-topbar .nav-shell {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.9rem 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+    }
+
+    .auth-brand {
+      color: var(--text);
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .auth-nav-actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .auth-nav-actions .btn {
+      border-radius: 999px;
+      font-weight: 700;
+    }
+
     .auth-shell {
-      min-height: 100vh;
+      min-height: calc(100vh - 96px);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -333,6 +370,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     @media (max-width: 991.98px) {
+      .auth-topbar .nav-shell {
+        border-radius: 1.5rem;
+      }
+
       .auth-hero,
       .auth-form-wrap {
         padding: 32px 24px;
@@ -340,6 +381,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     @media (max-width: 575.98px) {
+      .auth-topbar .nav-shell {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .auth-nav-actions {
+        width: 100%;
+      }
+
+      .auth-nav-actions .btn {
+        flex: 1 1 100%;
+      }
+
       .role-picker {
         grid-template-columns: 1fr;
       }
@@ -347,6 +401,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </style>
 </head>
 <body>
+  <div class="auth-topbar">
+    <div class="nav-shell">
+      <a href="index.html" class="auth-brand">Event Booking</a>
+      <nav class="auth-nav-actions" data-global-nav aria-label="Global navigation">
+        <a href="index.html" class="btn btn-outline-secondary">Home</a>
+        <a href="events.html" class="btn btn-outline-secondary">Events</a>
+        <a href="login.php" class="btn btn-outline-secondary">Login</a>
+        <a href="register.php" class="btn btn-primary">Create Account</a>
+      </nav>
+    </div>
+  </div>
   <main class="auth-shell">
     <section class="auth-card">
       <div class="row g-0">

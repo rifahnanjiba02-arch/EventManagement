@@ -303,6 +303,8 @@ foreach ($users as $user) {
           </div>
         </div>
         <div class="d-flex gap-2 flex-wrap">
+          <a href="index.html" class="btn btn-outline-light">Home</a>
+          <a href="events.html" class="btn btn-outline-light">Events</a>
           <a href="organizer_profile.php" class="btn btn-light">Back to Dashboard</a>
           <a href="create_event.html" class="btn btn-outline-light">Create Event</a>
           <a href="logout.php" class="btn btn-outline-warning">Log Out</a>

@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet" />
+  <script src="global_nav.js" defer></script>
   <style>
     :root {
       --bg: #f6efe5;
@@ -362,8 +363,9 @@
         <span>Event Booking</span>
       </a>
 
-      <nav class="nav-actions" aria-label="Primary">
-        <a href="events.html" class="btn btn-secondary">Browse Events</a>
+      <nav class="nav-actions" data-global-nav aria-label="Primary">
+        <a href="index.html" class="btn btn-secondary">Home</a>
+        <a href="events.html" class="btn btn-secondary">Events</a>
         <a href="login.php" class="btn btn-secondary">Login</a>
         <a href="register.php" class="btn btn-primary">Create Account</a>
       </nav>

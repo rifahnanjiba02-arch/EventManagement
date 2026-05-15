@@ -503,7 +503,9 @@ try {
             <a href="#my-events">My Events</a>
           </div>
         </div>
-        <div>
+        <div class="d-flex gap-2 flex-wrap">
+          <a href="index.html" class="btn btn-outline-light">Home</a>
+          <a href="events.html" class="btn btn-outline-light">Events</a>
           <a href="create_event.html" class="btn btn-light me-2">Create Event</a>
       <?php if ((int)$profile['is_admin'] === 1): ?>
           <a href="manage_users.php" class="btn btn-warning me-2">Manage Users</a>

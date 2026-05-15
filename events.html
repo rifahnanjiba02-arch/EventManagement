@@ -644,6 +644,7 @@
 
       <nav class="nav-actions" id="navActions" aria-label="Primary">
         <a href="index.html" class="btn btn-secondary">Home</a>
+        <a href="events.html" class="btn btn-secondary">Events</a>
         <a href="login.php" class="btn btn-secondary">Login</a>
         <a href="register.php" class="btn btn-primary">Create Account</a>
       </nav>
@@ -760,6 +761,7 @@
       if (session.role === 'attendee') {
         navActions.innerHTML = `
           <a href="index.html" class="btn btn-secondary">Home</a>
+          <a href="events.html" class="btn btn-secondary">Events</a>
           <a href="attendee_profile.php" class="btn btn-secondary">My Profile</a>
           <a href="my_bookings.html?attendee_id=${encodeURIComponent(session.attendee_id || '')}" class="btn btn-secondary">My Bookings</a>
           <a href="logout.php" class="btn btn-primary">Log Out</a>
@@ -770,6 +772,7 @@
       if (session.role === 'organizer') {
         navActions.innerHTML = `
           <a href="index.html" class="btn btn-secondary">Home</a>
+          <a href="events.html" class="btn btn-secondary">Events</a>
           <a href="create_event.html" class="btn btn-secondary">Create Event</a>
           <a href="organizer_profile.php" class="btn btn-secondary">Dashboard</a>
           <a href="logout.php" class="btn btn-primary">Log Out</a>
