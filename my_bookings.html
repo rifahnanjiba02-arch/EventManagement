@@ -612,8 +612,7 @@
   </div>
 
   <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    let attendeeId = urlParams.get('attendee_id');
+    let attendeeId = null;
 
     const bookingsContainer = document.getElementById('bookingsContainer');
     const pageMessage = document.getElementById('pageMessage');
@@ -624,19 +623,12 @@
     renderLoadingState();
 
     async function ensureAttendeeSession() {
-      if (attendeeId) {
-        return true;
-      }
-
       try {
         const response = await fetch('get_session.php');
         const session = await response.json();
 
         if (session.role === 'attendee' && session.attendee_id) {
           attendeeId = session.attendee_id;
-          const nextUrl = new URL(window.location.href);
-          nextUrl.searchParams.set('attendee_id', attendeeId);
-          window.history.replaceState({}, '', nextUrl);
           return true;
         }
       } catch (error) {
@@ -689,7 +681,7 @@
       renderLoadingState();
 
       try {
-        const response = await fetch(`get_bookings.php?attendee_id=${encodeURIComponent(attendeeId)}`);
+        const response = await fetch('get_bookings.php');
         if (!response.ok) {
           throw new Error('Failed to fetch bookings');
         }
@@ -724,7 +716,10 @@
       const today = getTodayStart();
       const upcoming = bookings.filter(booking => {
         const eventDate = parseEventDate(booking.date);
-        return eventDate && eventDate.getTime() >= today.getTime() && normalizeStatus(booking.status) !== 'cancelled';
+        return eventDate
+          && eventDate.getTime() >= today.getTime()
+          && normalizeStatus(booking.status) !== 'cancelled'
+          && normalizeEventStatus(booking.event_status) !== 'cancelled';
       });
       const checkedIn = bookings.filter(booking => normalizeAttendance(booking.attendance) === 'checked_in');
 
@@ -746,13 +741,18 @@
     }
 
     function createBookingCard(booking) {
+      const eventStatus = normalizeEventStatus(booking.event_status);
       const status = normalizeStatus(booking.status);
       const attendance = normalizeAttendance(booking.attendance);
-      const dateContext = getDateContext(booking.date, status);
+      const dateContext = getDateContext(booking.date, status, eventStatus);
+      const isOrganizerCancelled = eventStatus === 'cancelled';
       const isToday = dateContext.state === 'today';
-      const canCheckIn = status === 'confirmed' && attendance === 'pending' && isToday;
-      const canCancel = status === 'confirmed' && attendance !== 'checked_in';
-      const cardStateClass = status === 'cancelled'
+      const isFutureEvent = ['tomorrow', 'upcoming'].includes(dateContext.state);
+      const hasEventEnded = dateContext.state === 'past';
+      const canCheckIn = !isOrganizerCancelled && status === 'confirmed' && attendance === 'pending' && isToday;
+      const canCancel = !isOrganizerCancelled && status === 'confirmed' && attendance !== 'checked_in' && isFutureEvent;
+      const canLeaveFeedback = !isOrganizerCancelled && status === 'confirmed' && (attendance === 'checked_in' || hasEventEnded);
+      const cardStateClass = status === 'cancelled' || isOrganizerCancelled
         ? 'cancelled'
         : dateContext.state === 'past'
           ? 'completed'
@@ -766,11 +766,11 @@
               <h3>${escapeHtml(booking.event || 'Untitled Event')}</h3>
             </div>
             <div>
-              <span class="status-chip ${escapeHtml(getChipClass(status))}">${escapeHtml(capitalizeLabel(status))}</span>
+              <span class="status-chip ${escapeHtml(getChipClass(isOrganizerCancelled ? 'cancelled' : status))}">${escapeHtml(capitalizeLabel(isOrganizerCancelled ? 'event_cancelled' : status))}</span>
             </div>
           </div>
 
-          <p class="booking-summary">${escapeHtml(getBookingSummary(status, attendance, dateContext))}</p>
+          <p class="booking-summary">${escapeHtml(getBookingSummary(status, attendance, dateContext, booking))}</p>
 
           <div class="booking-meta">
             <div class="meta-row">
@@ -806,10 +806,10 @@
           </div>
 
           <div class="booking-footer">
-            <div class="booking-note">${escapeHtml(getBookingNote(status, attendance, dateContext, canCheckIn))}</div>
+            <div class="booking-note">${escapeHtml(getBookingNote(status, attendance, dateContext, canCheckIn, booking))}</div>
             <div class="booking-actions">
               ${canCheckIn ? `<button class="btn btn-success" data-action="check-in" data-event-id="${escapeHtml(String(booking.event_id))}">Check In</button>` : ''}
-              ${status === 'confirmed' ? `<button class="btn btn-secondary" data-action="feedback" data-event-name="${escapeHtml(booking.event || '')}">Leave Feedback</button>` : ''}
+              ${canLeaveFeedback ? `<button class="btn btn-secondary" data-action="feedback" data-event-name="${escapeHtml(booking.event || '')}">Leave Feedback</button>` : ''}
               ${canCancel ? `<button class="btn btn-danger" data-action="cancel-booking" data-event-id="${escapeHtml(String(booking.event_id))}">Cancel Booking</button>` : ''}
             </div>
           </div>
@@ -851,7 +851,6 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            attendee_id: parseInt(attendeeId, 10),
             event_id: eventId,
             attendance_status: 'checked_in'
           })
@@ -886,7 +885,7 @@
         const response = await fetch('cancel_booking.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ event_id: eventId, attendee_id: parseInt(attendeeId, 10) })
+          body: JSON.stringify({ event_id: eventId })
         });
         const result = await response.json();
 
@@ -902,7 +901,11 @@
       }
     }
 
-    function getBookingSummary(status, attendance, dateContext) {
+    function getBookingSummary(status, attendance, dateContext, booking) {
+      if (normalizeEventStatus(booking.event_status) === 'cancelled') {
+        return 'The organizer cancelled this event. Your booking is kept here with the cancellation reason.';
+      }
+
       if (status === 'cancelled') {
         return 'This reservation has been cancelled and is kept here for your record.';
       }
@@ -922,7 +925,13 @@
       return `Your booking is active and ${dateContext.summary.toLowerCase()}`;
     }
 
-    function getBookingNote(status, attendance, dateContext, canCheckIn) {
+    function getBookingNote(status, attendance, dateContext, canCheckIn, booking) {
+      if (normalizeEventStatus(booking.event_status) === 'cancelled') {
+        return booking.cancellation_reason
+          ? `Organizer reason: ${booking.cancellation_reason}`
+          : 'This event was cancelled by the organizer.';
+      }
+
       if (status === 'cancelled') {
         return 'Cancelled bookings cannot be checked in or changed.';
       }
@@ -939,10 +948,14 @@
         return 'The event date has passed, so live attendance actions are closed.';
       }
 
+      if (dateContext.state === 'today') {
+        return 'This booking is locked for today, so cancellation is no longer available.';
+      }
+
       return 'Your booking is still active and ready for the event date.';
     }
 
-    function getDateContext(dateString, status) {
+    function getDateContext(dateString, status, eventStatus) {
       const eventDate = parseEventDate(dateString);
 
       if (!eventDate) {
@@ -956,7 +969,7 @@
       const today = getTodayStart();
       const diffDays = Math.round((eventDate.getTime() - today.getTime()) / 86400000);
 
-      if (status === 'cancelled') {
+      if (eventStatus === 'cancelled' || status === 'cancelled') {
         return {
           state: 'cancelled',
           label: 'Cancelled',
@@ -1013,6 +1026,10 @@
 
     function normalizeAttendance(attendance) {
       return String(attendance || '').trim().toLowerCase().replace(/\s+/g, '_');
+    }
+
+    function normalizeEventStatus(status) {
+      return String(status || 'scheduled').trim().toLowerCase().replace(/\s+/g, '_');
     }
 
     function parseEventDate(dateString) {

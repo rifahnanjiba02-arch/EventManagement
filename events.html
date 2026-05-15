@@ -786,7 +786,7 @@
           <a href="index.html" class="btn btn-secondary">Home</a>
           <a href="events.html" class="btn btn-secondary">Events</a>
           <a href="attendee_profile.php" class="btn btn-secondary">My Profile</a>
-          <a href="my_bookings.html?attendee_id=${encodeURIComponent(session.attendee_id || '')}" class="btn btn-secondary">My Bookings</a>
+          <a href="my_bookings.html" class="btn btn-secondary">My Bookings</a>
           <a href="logout.php" class="btn btn-primary">Log Out</a>
         `;
         return;
@@ -904,7 +904,7 @@
 
     async function loadBookedEvents() {
       try {
-        const response = await fetch(`get_bookings.php?attendee_id=${encodeURIComponent(attendeeId)}`);
+        const response = await fetch('get_bookings.php');
         if (!response.ok) {
           throw new Error('Failed to fetch attendee bookings');
         }
@@ -912,6 +912,7 @@
         const bookings = await response.json();
         bookedEventIds = new Set(
           (Array.isArray(bookings) ? bookings : [])
+            .filter(booking => String(booking.status || '').toLowerCase() !== 'cancelled')
             .map(booking => Number(booking.event_id))
             .filter(eventId => !Number.isNaN(eventId))
         );
@@ -1080,14 +1081,14 @@
         const response = await fetch('book_event.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ event_id: eventId, attendee_id: attendeeId })
+          body: JSON.stringify({ event_id: eventId })
         });
 
         const result = await response.json();
 
         if (response.ok && result.success) {
           alert('Booking successful!');
-          window.location.href = `my_bookings.html?attendee_id=${encodeURIComponent(attendeeId)}`;
+          window.location.href = 'my_bookings.html';
           return;
         }
 
