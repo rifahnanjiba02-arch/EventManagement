@@ -1222,6 +1222,7 @@ try {
           </div>
         </div>
         <div class="profile-actions">
+          <a href="change_password.php" class="btn btn-outline-secondary">Change Password</a>
           <a href="manage_users.php" class="btn btn-danger">Open User Management</a>
           <a href="create_event.html" class="btn btn-outline-secondary">Create Another Event</a>
         </div>
