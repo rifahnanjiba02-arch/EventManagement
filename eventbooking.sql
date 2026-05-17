@@ -334,10 +334,6 @@ INSERT INTO `user_profile` (`user_id`, `bio`, `profile_picture`, `social_link1`,
 
 --
 -- Structure for view `attendee_total_booking`
---
-DROP TABLE IF EXISTS `attendee_total_booking`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `attendee_total_booking`  AS SELECT `up`.`user_id` AS `user_id`, `up`.`bio` AS `bio`, `up`.`profile_picture` AS `profile_picture`, `up`.`social_link1` AS `social_link1`, `up`.`social_link2` AS `social_link2`, `up`.`social_link3` AS `social_link3`, count(`b`.`booking_id`) AS `total_booking` FROM ((`user_profile` `up` join `attendee` `a` on(`up`.`user_id` = `a`.`user_id`)) left join `booking` `b` on(`a`.`attendee_id` = `b`.`attendee_id`)) GROUP BY `up`.`user_id` ;
 
 --
 -- Indexes for dumped tables
