@@ -15,17 +15,22 @@ if (!isset($_SESSION['attendee_id'])) {
 
 $attendee_id = $_SESSION['attendee_id'];
 
-//  GET: Fetch upcoming booked events for this attendee
+//  GET: Fetch eligible booked events for this attendee
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     try {
         $stmt = $pdo->prepare("
             SELECT e.event_id AS id, e.title
             FROM EventDetails e
             INNER JOIN Booking b ON e.event_id = b.event_id
+            LEFT JOIN Feedback f ON f.event_id = e.event_id AND f.attendee_id = b.attendee_id
             WHERE b.attendee_id = ?
               AND b.status = 'confirmed'
-              AND e.event_status = 'scheduled'
-              AND e.event_date >= CURDATE()
+              AND COALESCE(e.event_status, 'scheduled') <> 'cancelled'
+              AND f.feedback_id IS NULL
+              AND (
+                b.attendance_status = 'checked_in'
+                OR e.event_date < CURDATE()
+              )
             ORDER BY e.event_date ASC
         ");
         $stmt->execute([$attendee_id]);
@@ -67,22 +72,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     try {
-        // Check if event exists
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM EventDetails WHERE event_id = ? AND event_status = 'scheduled'");
-        $stmt->execute([$event_id]);
-        if ($stmt->fetchColumn() == 0) {
+        $eligibilityStmt = $pdo->prepare("
+            SELECT
+                e.title,
+                EXISTS(
+                    SELECT 1
+                    FROM Feedback f
+                    WHERE f.attendee_id = b.attendee_id
+                      AND f.event_id = b.event_id
+                ) AS has_feedback
+            FROM Booking b
+            INNER JOIN EventDetails e ON e.event_id = b.event_id
+            WHERE b.attendee_id = ?
+              AND b.event_id = ?
+              AND b.status = 'confirmed'
+              AND COALESCE(e.event_status, 'scheduled') <> 'cancelled'
+              AND (
+                b.attendance_status = 'checked_in'
+                OR e.event_date < CURDATE()
+              )
+            LIMIT 1
+        ");
+        $eligibilityStmt->execute([$attendee_id, $event_id]);
+        $eligibleBooking = $eligibilityStmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$eligibleBooking) {
             http_response_code(400);
-            echo json_encode(["error" => "Event does not exist"]);
+            echo json_encode(["error" => "This event is not eligible for feedback yet"]);
             exit;
         }
 
-        // Prevent duplicate feedback
-        $checkFeedback = $pdo->prepare("
-            SELECT COUNT(*) FROM Feedback 
-            WHERE attendee_id = ? AND event_id = ?
-        ");
-        $checkFeedback->execute([$attendee_id, $event_id]);
-        if ($checkFeedback->fetchColumn() > 0) {
+        if ((int) $eligibleBooking['has_feedback'] === 1) {
             http_response_code(400);
             echo json_encode(["error" => "Feedback already submitted for this event"]);
             exit;

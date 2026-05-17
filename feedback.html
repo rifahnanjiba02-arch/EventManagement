@@ -514,7 +514,7 @@
         <span class="eyebrow">Attendee Feedback</span>
         <h1>Leave feedback for an event.</h1>
         <p class="hero-copy">
-          Pick an event, choose a rating, and add a short comment if you want.
+          Pick an eligible event, choose a rating, and add a short comment if you want.
         </p>
 
         <div class="stats-grid">
@@ -527,8 +527,8 @@
             <span>Optional comment limit.</span>
           </article>
           <article class="stat-card">
-            <strong>Booked events</strong>
-            <span>Only your confirmed bookings appear.</span>
+            <strong>Eligible events</strong>
+            <span>Checked-in or completed confirmed bookings appear.</span>
           </article>
         </div>
       </div>
@@ -539,7 +539,7 @@
         <div class="card-head">
           <div>
             <h2>Leave Feedback</h2>
-            <p>Choose an event and submit your rating.</p>
+            <p>Choose a completed or checked-in booking and submit your rating.</p>
           </div>
           <span class="status-badge" id="formStatusBadge">Loading events...</span>
         </div>
@@ -549,7 +549,7 @@
         <form id="feedbackForm" class="form-grid" novalidate>
           <div class="field">
             <label for="eventDropdown">Select event</label>
-            <span class="field-hint">Confirmed bookings only.</span>
+            <span class="field-hint">Only eligible confirmed bookings appear here.</span>
             <select name="event_id" id="eventDropdown" required>
               <option value="">Loading events...</option>
             </select>
@@ -592,7 +592,7 @@
         </form>
 
         <div id="emptyStateNote" class="empty-note" hidden>
-          You do not have any upcoming confirmed bookings available for feedback yet.
+          You do not have any completed or checked-in confirmed bookings ready for feedback yet.
         </div>
       </div>
     </section>
@@ -670,8 +670,16 @@
         });
 
         const params = new URLSearchParams(window.location.search);
+        const requestedEventId = params.get('event_id');
         const eventName = params.get('event');
-        if (eventName) {
+        if (requestedEventId) {
+          const matchById = Array.from(eventDropdown.options).find(
+            (option) => option.value === requestedEventId
+          );
+          if (matchById) {
+            matchById.selected = true;
+          }
+        } else if (eventName) {
           const match = Array.from(eventDropdown.options).find(
             (option) => option.textContent.trim() === eventName.trim()
           );

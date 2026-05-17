@@ -464,6 +464,7 @@ $socialLinks = array_values(array_filter([
           <div class="quick-actions">
             <a href="events.html" class="btn btn-primary">Explore Events</a>
             <a href="my_bookings.html" class="btn btn-outline-secondary">Review Bookings</a>
+            <a href="change_password.php" class="btn btn-outline-secondary">Change Password</a>
           </div>
         </div>
       </div>

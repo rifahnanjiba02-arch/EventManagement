@@ -809,7 +809,7 @@
             <div class="booking-note">${escapeHtml(getBookingNote(status, attendance, dateContext, canCheckIn, booking))}</div>
             <div class="booking-actions">
               ${canCheckIn ? `<button class="btn btn-success" data-action="check-in" data-event-id="${escapeHtml(String(booking.event_id))}">Check In</button>` : ''}
-              ${canLeaveFeedback ? `<button class="btn btn-secondary" data-action="feedback" data-event-name="${escapeHtml(booking.event || '')}">Leave Feedback</button>` : ''}
+              ${canLeaveFeedback ? `<button class="btn btn-secondary" data-action="feedback" data-event-id="${escapeHtml(String(booking.event_id))}" data-event-name="${escapeHtml(booking.event || '')}">Leave Feedback</button>` : ''}
               ${canCancel ? `<button class="btn btn-danger" data-action="cancel-booking" data-event-id="${escapeHtml(String(booking.event_id))}">Cancel Booking</button>` : ''}
             </div>
           </div>
@@ -830,7 +830,7 @@
           }
 
           if (action === 'feedback') {
-            goToFeedback(button.dataset.eventName || '');
+            goToFeedback(button.dataset.eventId || '', button.dataset.eventName || '');
             return;
           }
 
@@ -870,8 +870,11 @@
       }
     }
 
-    function goToFeedback(eventName) {
+    function goToFeedback(eventId, eventName) {
       const url = new URL('feedback.html', window.location.href);
+      if (eventId) {
+        url.searchParams.set('event_id', eventId);
+      }
       url.searchParams.set('event', eventName);
       window.location.href = url.toString();
     }
