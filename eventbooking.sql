@@ -57,18 +57,6 @@ INSERT INTO `attendee` (`user_id`, `attendee_id`) VALUES
 -- Stand-in structure for view `attendee_total_booking`
 -- (See below for the actual view)
 --
-CREATE TABLE `attendee_total_booking` (
-`user_id` int(11)
-,`bio` text
-,`profile_picture` varchar(255)
-,`social_link1` varchar(255)
-,`social_link2` varchar(255)
-,`social_link3` varchar(255)
-,`total_booking` bigint(21)
-);
-
--- --------------------------------------------------------
-
 --
 -- Table structure for table `booking`
 --
@@ -334,7 +322,6 @@ INSERT INTO `user_profile` (`user_id`, `bio`, `profile_picture`, `social_link1`,
 
 --
 -- Structure for view `attendee_total_booking`
-
 --
 -- Indexes for dumped tables
 --
