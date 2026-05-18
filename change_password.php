@@ -15,6 +15,10 @@ $errors = [];
 $successMessage = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+        $errors[] = 'Invalid request. Please refresh the page and try again.';
+    }
+
     $currentPassword = $_POST['current_password'] ?? '';
     $newPassword = $_POST['new_password'] ?? '';
     $confirmPassword = $_POST['confirm_password'] ?? '';
@@ -279,6 +283,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php endif; ?>
 
       <form method="POST">
+        <?= csrfInput() ?>
         <div class="field">
           <label for="current_password">Current password</label>
           <input type="password" id="current_password" name="current_password" autocomplete="current-password" required />

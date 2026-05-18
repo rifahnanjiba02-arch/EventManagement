@@ -1,19 +1,17 @@
 <?php
 
 require_once 'session_bootstrap.php';
-header('Content-Type: application/json');
 require 'db.php';
+require_once 'api_helpers.php';
 require_once 'event_status_schema.php';
 
 ensureEventStatusSchema($pdo);
 
 if (($_SESSION['role'] ?? null) !== 'attendee' || !isset($_SESSION['attendee_id'])) {
-    http_response_code(401);
-    echo json_encode(["error" => "Please log in as an attendee"]);
-    exit;
+    jsonError('Please log in as an attendee', 401);
 }
 
-$attendee_id = (int) $_SESSION['attendee_id'];
+$attendee_id = requirePositiveInt($_SESSION['attendee_id'], 'attendee_id');
 
 $sql = "
 SELECT 
@@ -34,8 +32,11 @@ WHERE b.attendee_id = ?
 ";
 
 $stmt = $pdo->prepare($sql);
-$stmt->execute([$attendee_id]);
-$bookings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $stmt->execute([$attendee_id]);
+    $bookings = $stmt->fetchAll();
+} catch (Throwable $e) {
+    reportServerException($e, 'Failed to fetch bookings');
+}
 
-echo json_encode($bookings);
-?>
+jsonResponse($bookings);

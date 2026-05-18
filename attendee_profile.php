@@ -11,6 +11,11 @@ $user_id = $_SESSION['user_id'];
 
 try {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
+        if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+            http_response_code(403);
+            exit('Invalid request.');
+        }
+
         $bio = $_POST['bio'] ?? null;
         $link1 = $_POST['social_link1'] ?? null;
         $link2 = $_POST['social_link2'] ?? null;
@@ -40,13 +45,16 @@ try {
         GROUP BY u.user_id, a.attendee_id
     ");
     $stmt->execute([$user_id]);
-    $profile = $stmt->fetch(PDO::FETCH_ASSOC);
+    $profile = $stmt->fetch();
 
     if (!$profile) {
-        die("Profile not found.");
+        http_response_code(404);
+        exit('Profile not found.');
     }
 } catch (PDOException $e) {
-    die("Database error: " . htmlspecialchars($e->getMessage()));
+    error_log('Failed to load attendee profile: ' . $e->getMessage());
+    http_response_code(500);
+    exit('Unable to load your profile right now.');
 }
 
 $fullName = trim(($profile['first_name'] ?? '') . ' ' . ($profile['last_name'] ?? ''));
@@ -383,6 +391,7 @@ $socialLinks = array_values(array_filter([
           <h2 class="h5 mb-1"><?= htmlspecialchars($fullName) ?></h2>
           <p class="mini-muted mb-3">Profile photo and identity</p>
           <form action="upload_profile_pic.php" method="POST" enctype="multipart/form-data" class="d-grid gap-2">
+            <?= csrfInput() ?>
             <input type="file" name="profile_pic" accept="image/*" class="form-control" required />
             <button type="submit" class="btn btn-primary">Upload New Photo</button>
           </form>
@@ -474,6 +483,7 @@ $socialLinks = array_values(array_filter([
   <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <form method="POST" class="modal-content">
+        <?= csrfInput() ?>
         <div class="modal-header">
           <h5 class="modal-title" id="editProfileModalLabel">Edit Profile</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>

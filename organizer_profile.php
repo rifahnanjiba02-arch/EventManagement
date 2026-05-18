@@ -63,7 +63,8 @@ try {
     $profile = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$profile) {
-        die("Profile not found.");
+        http_response_code(404);
+        exit('Profile not found.');
     }
 
     $organizerId = (int)$profile['organizer_id'];
@@ -75,6 +76,11 @@ try {
     ]));
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
+        if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+            http_response_code(403);
+            exit('Invalid request.');
+        }
+
         $bio = $_POST['bio'] ?? null;
         $link1 = $_POST['social_link1'] ?? null;
         $link2 = $_POST['social_link2'] ?? null;
@@ -92,6 +98,11 @@ try {
     }
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['respond_request'], $_POST['request_id'], $_POST['decision'])) {
+        if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+            http_response_code(403);
+            exit('Invalid request.');
+        }
+
         $requestId = (int)$_POST['request_id'];
         $decision = $_POST['decision'] === 'accept' ? 'accepted' : 'declined';
 
@@ -155,6 +166,11 @@ try {
     }
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['respond_cancellation_request'], $_POST['approval_id'], $_POST['decision'])) {
+        if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+            http_response_code(403);
+            exit('Invalid request.');
+        }
+
         $approvalId = (int) $_POST['approval_id'];
         $decision = $_POST['decision'] === 'approve' ? 'approved' : 'declined';
 
@@ -296,6 +312,11 @@ try {
     }
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_event'], $_POST['event_id'])) {
+        if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+            http_response_code(403);
+            exit('Invalid request.');
+        }
+
         $eventId = (int) $_POST['event_id'];
         $cancellationReason = trim($_POST['cancellation_reason'] ?? '');
 
@@ -591,7 +612,9 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    die("Database error: " . htmlspecialchars($e->getMessage()));
+    error_log('Failed to load organizer profile: ' . $e->getMessage());
+    http_response_code(500);
+    exit('Unable to load your profile right now.');
 }
 ?>
 <!DOCTYPE html>
@@ -1115,6 +1138,7 @@ try {
           <h2 class="h4 mb-1"><?= htmlspecialchars($profile['first_name'] . ' ' . $profile['last_name']) ?></h2>
           <p class="mini-muted mb-3">Profile photo and identity</p>
           <form action="upload_profile_pic.php" method="POST" enctype="multipart/form-data" class="mt-2 upload-form">
+            <?= csrfInput() ?>
             <input type="file" name="profile_pic" accept="image/*" class="form-control" required />
             <button type="submit" class="btn btn-primary mt-2">Upload New Photo</button>
           </form>
@@ -1261,6 +1285,7 @@ try {
                     <span class="badge text-bg-warning">Pending</span>
                   </div>
                   <form method="POST" class="d-flex gap-2 flex-wrap mt-2">
+                    <?= csrfInput() ?>
                     <input type="hidden" name="request_id" value="<?= (int)$request['request_id'] ?>" />
                     <input type="hidden" name="respond_request" value="1" />
                     <button type="submit" name="decision" value="accept" class="btn btn-success btn-sm">Accept</button>
@@ -1305,6 +1330,7 @@ try {
                     <span class="badge text-bg-warning">Approval needed</span>
                   </div>
                   <form method="POST" class="d-flex gap-2 flex-wrap mt-2">
+                    <?= csrfInput() ?>
                     <input type="hidden" name="approval_id" value="<?= (int)$request['approval_id'] ?>" />
                     <input type="hidden" name="respond_cancellation_request" value="1" />
                     <button type="submit" name="decision" value="approve" class="btn btn-success btn-sm">Approve</button>
@@ -1497,6 +1523,7 @@ try {
     <div class="modal-dialog">
       <div class="modal-content">
         <form method="POST" novalidate>
+          <?= csrfInput() ?>
           <div class="modal-header">
             <h5 class="modal-title" id="editProfileModalLabel">Edit Profile</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -1532,6 +1559,7 @@ try {
     <div class="modal-dialog">
       <div class="modal-content">
         <form method="POST" novalidate>
+          <?= csrfInput() ?>
           <div class="modal-header">
             <h5 class="modal-title" id="cancelEventModalLabel">Cancel Event</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
