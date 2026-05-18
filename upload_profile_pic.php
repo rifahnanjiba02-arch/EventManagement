@@ -10,6 +10,26 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $user_id = $_SESSION['user_id'];
+$uploadDir = 'uploads/profile_pics/';
+
+function isManagedProfilePicturePath(string $path, string $uploadDir): bool
+{
+    $normalizedPath = str_replace('\\', '/', $path);
+    $normalizedUploadDir = rtrim(str_replace('\\', '/', $uploadDir), '/') . '/';
+
+    return substr($normalizedPath, 0, strlen($normalizedUploadDir)) === $normalizedUploadDir;
+}
+
+function removeManagedProfilePicture(string $path, string $uploadDir): void
+{
+    if ($path === '' || !isManagedProfilePicturePath($path, $uploadDir)) {
+        return;
+    }
+
+    if (is_file($path)) {
+        @unlink($path);
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !verifyCsrfToken($_POST['csrf_token'] ?? null)) {
     http_response_code(403);
@@ -25,7 +45,6 @@ if (!isset($_FILES['profile_pic']) || $_FILES['profile_pic']['error'] !== UPLOAD
 }
 
 // Prepare upload directory
-$uploadDir = 'uploads/profile_pics/';
 if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
 
 $fileTmp = $_FILES['profile_pic']['tmp_name'];
@@ -52,6 +71,10 @@ if ($imageInfo === false || !isset($allowedMimeTypes[$mimeType])) {
     exit;
 }
 
+$currentPictureStmt = $pdo->prepare("SELECT profile_picture FROM user_profile WHERE user_id = ? LIMIT 1");
+$currentPictureStmt->execute([$user_id]);
+$existingProfilePicture = (string) ($currentPictureStmt->fetchColumn() ?: '');
+
 $newFileName = $user_id . '_' . bin2hex(random_bytes(16)) . '.' . $allowedMimeTypes[$mimeType];
 $target = $uploadDir . $newFileName;
 
@@ -60,6 +83,16 @@ if (move_uploaded_file($fileTmp, $target)) {
     @chmod($target, 0644);
     $stmt = $pdo->prepare("UPDATE user_profile SET profile_picture = ? WHERE user_id = ?");
     $stmt->execute([$target, $user_id]);
+
+    if ($existingProfilePicture !== $target) {
+        removeManagedProfilePicture($existingProfilePicture, $uploadDir);
+    }
+
+    foreach (glob($uploadDir . $user_id . '_*') ?: [] as $staleFile) {
+        if ($staleFile !== $target && is_file($staleFile)) {
+            @unlink($staleFile);
+        }
+    }
 
     // Redirect to appropriate profile page based on role
     $role = $_SESSION['role'] ?? '';
