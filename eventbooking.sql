@@ -159,6 +159,36 @@ CREATE TABLE `eventdetails` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
+-- Table structure for table `event_cancellation_batches`
+--
+
+CREATE TABLE `event_cancellation_batches` (
+  `batch_id` int(11) NOT NULL,
+  `event_id` int(11) NOT NULL,
+  `requested_by_organizer_id` int(11) NOT NULL,
+  `cancellation_reason` text NOT NULL,
+  `status` enum('pending','declined','completed') NOT NULL DEFAULT 'pending',
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `resolved_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `event_cancellation_approvals`
+--
+
+CREATE TABLE `event_cancellation_approvals` (
+  `approval_id` int(11) NOT NULL,
+  `batch_id` int(11) NOT NULL,
+  `organizer_id` int(11) NOT NULL,
+  `status` enum('pending','approved','declined') NOT NULL DEFAULT 'pending',
+  `responded_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Dumping data for table `eventdetails`
 --
 
@@ -355,6 +385,22 @@ ALTER TABLE `eventdetails`
   ADD PRIMARY KEY (`event_id`);
 
 --
+-- Indexes for table `event_cancellation_batches`
+--
+ALTER TABLE `event_cancellation_batches`
+  ADD PRIMARY KEY (`batch_id`),
+  ADD KEY `idx_ecb_event_status` (`event_id`,`status`),
+  ADD KEY `idx_ecb_requester_status` (`requested_by_organizer_id`,`status`);
+
+--
+-- Indexes for table `event_cancellation_approvals`
+--
+ALTER TABLE `event_cancellation_approvals`
+  ADD PRIMARY KEY (`approval_id`),
+  ADD UNIQUE KEY `uniq_batch_organizer` (`batch_id`,`organizer_id`),
+  ADD KEY `idx_eca_organizer_status` (`organizer_id`,`status`);
+
+--
 -- Indexes for table `event_collaboration_requests`
 --
 ALTER TABLE `event_collaboration_requests`
@@ -418,6 +464,18 @@ ALTER TABLE `eventdetails`
   MODIFY `event_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
+-- AUTO_INCREMENT for table `event_cancellation_batches`
+--
+ALTER TABLE `event_cancellation_batches`
+  MODIFY `batch_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `event_cancellation_approvals`
+--
+ALTER TABLE `event_cancellation_approvals`
+  MODIFY `approval_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `event_collaboration_requests`
 --
 ALTER TABLE `event_collaboration_requests`
@@ -464,6 +522,20 @@ ALTER TABLE `booking`
 ALTER TABLE `create_event`
   ADD CONSTRAINT `create_event_ibfk_1` FOREIGN KEY (`organizer_id`) REFERENCES `organizer` (`organizer_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `create_event_ibfk_2` FOREIGN KEY (`event_id`) REFERENCES `eventdetails` (`event_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `event_cancellation_batches`
+--
+ALTER TABLE `event_cancellation_batches`
+  ADD CONSTRAINT `ecb_event_fk` FOREIGN KEY (`event_id`) REFERENCES `eventdetails` (`event_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `ecb_requester_fk` FOREIGN KEY (`requested_by_organizer_id`) REFERENCES `organizer` (`organizer_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `event_cancellation_approvals`
+--
+ALTER TABLE `event_cancellation_approvals`
+  ADD CONSTRAINT `eca_batch_fk` FOREIGN KEY (`batch_id`) REFERENCES `event_cancellation_batches` (`batch_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `eca_organizer_fk` FOREIGN KEY (`organizer_id`) REFERENCES `organizer` (`organizer_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `feedback`
