@@ -29,13 +29,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $password = $_POST['password'] ?? '';
+    $confirmPassword = $_POST['confirm_password'] ?? '';
     $phoneNumbers = [
         $formData['phone_number1'],
         $formData['phone_number2'],
         $formData['phone_number3']
     ];
 
-    if ($formData['first_name'] === '' || $formData['last_name'] === '' || $formData['email'] === '' || $password === '' || $formData['role'] === '') {
+    if ($formData['first_name'] === '' || $formData['last_name'] === '' || $formData['email'] === '' || $password === '' || $confirmPassword === '' || $formData['role'] === '') {
         $errors[] = 'Complete all required fields before creating your account.';
     }
 
@@ -45,6 +46,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($password !== '' && strlen($password) < 8) {
         $errors[] = 'Use at least 8 characters for your password.';
+    }
+
+    if ($password !== '' && $confirmPassword !== '' && $password !== $confirmPassword) {
+        $errors[] = 'Password and confirmation do not match.';
     }
 
     if ($formData['role'] !== '' && !in_array($formData['role'], $allowedRoles, true)) {
@@ -554,8 +559,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
               <div class="mb-3">
                 <label for="password" class="form-label">Password</label>
-                <input type="password" name="password" id="password" class="form-control" autocomplete="new-password" required>
+                <input type="password" name="password" id="password" class="form-control" autocomplete="new-password" minlength="8" required>
                 <div class="form-text">Use at least 8 characters.</div>
+              </div>
+
+              <div class="mb-3">
+                <label for="confirm_password" class="form-label">Confirm Password</label>
+                <input type="password" name="confirm_password" id="confirm_password" class="form-control" autocomplete="new-password" minlength="8" required>
+                <div class="form-text">Re-enter the same password to confirm it.</div>
               </div>
 
               <div class="mb-4">
