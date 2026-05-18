@@ -1,30 +1,36 @@
 <?php
-// get_attendee.php
-header('Content-Type: application/json');
 require 'db.php';
+require_once 'api_helpers.php';
 
 if (!isset($_GET['user_id'])) {
-    http_response_code(400);
-    echo json_encode(["error" => "Missing user ID"]);
-    exit;
+    jsonError('Missing user ID', 400);
 }
 
-$user_id = intval($_GET['user_id']);
+$user_id = requirePositiveInt($_GET['user_id'], 'user_id');
 
-$stmt = $pdo->prepare("
-    SELECT u.name, u.email, u.bio, u.profile_pic_url 
-    FROM users u
-    JOIN attendee a ON u.user_id = a.user_id
-    WHERE a.user_id = ?
-");
-$stmt->execute([$user_id]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
+try {
+    $stmt = $pdo->prepare("
+        SELECT
+            u.first_name,
+            u.last_name,
+            u.email,
+            up.bio,
+            up.profile_picture,
+            a.attendee_id
+        FROM users u
+        INNER JOIN attendee a ON u.user_id = a.user_id
+        LEFT JOIN user_profile up ON up.user_id = u.user_id
+        WHERE u.user_id = ?
+        LIMIT 1
+    ");
+    $stmt->execute([$user_id]);
+    $user = $stmt->fetch();
+} catch (Throwable $e) {
+    reportServerException($e, 'Failed to fetch attendee');
+}
 
 if (!$user) {
-    http_response_code(404);
-    echo json_encode(["error" => "User not found"]);
-    exit;
+    jsonError('User not found', 404);
 }
 
-echo json_encode($user);
-?>
+jsonResponse($user);

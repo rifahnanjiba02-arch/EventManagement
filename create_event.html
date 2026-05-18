@@ -580,12 +580,16 @@
       const message = document.getElementById('accessMessage');
       const select = document.getElementById('collaborators');
       const dateInput = document.getElementById('date');
+      const csrfField = document.createElement('input');
       const collaboratorSearch = document.getElementById('collaboratorSearch');
       const collaboratorList = document.getElementById('collaboratorList');
       const selectedCount = document.getElementById('selectedCount');
       const selectedChips = document.getElementById('selectedChips');
 
       const collaborators = [];
+      csrfField.type = 'hidden';
+      csrfField.name = 'csrf_token';
+      form.appendChild(csrfField);
 
       dateInput.min = new Date().toISOString().split('T')[0];
       select.innerHTML = '<option disabled>Loading collaborators...</option>';
@@ -672,6 +676,7 @@
             throw new Error('UNAUTHORIZED_CREATE_EVENT_PAGE');
           }
 
+          csrfField.value = typeof session.csrf_token === 'string' ? session.csrf_token : '';
           return fetch('create_event.php?fetch_organizers=1');
         })
         .then(res => res.json())

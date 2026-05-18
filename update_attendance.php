@@ -1,37 +1,29 @@
 <?php
 // update_attendance.php
 require_once 'session_bootstrap.php';
-header('Content-Type: application/json');
 require 'db.php';
+require_once 'api_helpers.php';
 require_once 'event_status_schema.php';
 
 ensureEventStatusSchema($pdo);
 
-// Get JSON POST input
-$input = json_decode(file_get_contents('php://input'), true);
+$input = decodeJsonRequestBody();
 
 if (($_SESSION['role'] ?? null) !== 'attendee' || !isset($_SESSION['attendee_id'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'error' => 'Please log in as an attendee']);
-    exit;
+    jsonResponse(['success' => false, 'error' => 'Please log in as an attendee'], 401);
 }
 
-if (!$input || !isset($input['event_id'], $input['attendance_status'])) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Missing parameters']);
-    exit;
+if (!isset($input['event_id'], $input['attendance_status'])) {
+    jsonResponse(['success' => false, 'error' => 'Missing parameters'], 400);
 }
 
 $attendee_id = (int) $_SESSION['attendee_id'];
-$event_id = intval($input['event_id']);
-$attendance_status = $input['attendance_status'];
+$event_id = requirePositiveInt($input['event_id'], 'event_id');
+$attendance_status = is_string($input['attendance_status']) ? trim($input['attendance_status']) : '';
 
-// Validate attendance status
 $valid_statuses = ['pending', 'checked_in', 'no-show'];
-if (!in_array($attendance_status, $valid_statuses)) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Invalid attendance status']);
-    exit;
+if (!in_array($attendance_status, $valid_statuses, true)) {
+    jsonResponse(['success' => false, 'error' => 'Invalid attendance status'], 400);
 }
 
 try {
@@ -43,48 +35,35 @@ try {
         WHERE b.attendee_id = ? AND b.event_id = ?
     ");
     $stmt->execute([$attendee_id, $event_id]);
-    $booking = $stmt->fetch(PDO::FETCH_ASSOC);
+    $booking = $stmt->fetch();
 
     if (!$booking) {
-        http_response_code(404);
-        echo json_encode(['success' => false, 'error' => 'Booking not found']);
-        exit;
+        jsonResponse(['success' => false, 'error' => 'Booking not found'], 404);
     }
 
     if ($booking['status'] !== 'confirmed') {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Booking not confirmed']);
-        exit;
+        jsonResponse(['success' => false, 'error' => 'Booking not confirmed'], 400);
     }
 
     if (($booking['event_status'] ?? 'scheduled') === 'cancelled') {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Cancelled events cannot be checked into']);
-        exit;
+        jsonResponse(['success' => false, 'error' => 'Cancelled events cannot be checked into'], 400);
     }
 
     if ($booking['attendance_status'] === $attendance_status) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Attendance already updated']);
-        exit;
+        jsonResponse(['success' => false, 'error' => 'Attendance already updated'], 400);
     }
 
     $eventDate = new DateTime($booking['event_date']);
     $today = new DateTime('today');
 
     if ($attendance_status === 'checked_in' && $eventDate->format('Y-m-d') !== $today->format('Y-m-d')) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Check-in is only available on the event date']);
-        exit;
+        jsonResponse(['success' => false, 'error' => 'Check-in is only available on the event date'], 400);
     }
 
-    // Update attendance status
     $update = $pdo->prepare("UPDATE booking SET attendance_status = ? WHERE attendee_id = ? AND event_id = ?");
     $update->execute([$attendance_status, $attendee_id, $event_id]);
 
-    echo json_encode(['success' => true]);
-} catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Server error: ' . $e->getMessage()]);
+    jsonSuccess();
+} catch (Throwable $e) {
+    reportServerException($e, 'Unable to update attendance right now.');
 }
-?>

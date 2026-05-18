@@ -1,56 +1,45 @@
 <?php
 // book_event.php
 require_once 'session_bootstrap.php';
-header('Content-Type: application/json');
 require 'db.php';
+require_once 'api_helpers.php';
 require_once 'event_status_schema.php';
 
 ensureEventStatusSchema($pdo);
 
-// Parse JSON input
-$input = json_decode(file_get_contents('php://input'), true);
+$input = decodeJsonRequestBody();
 
 if (($_SESSION['role'] ?? null) !== 'attendee' || !isset($_SESSION['attendee_id'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'error' => 'Please log in as an attendee']);
-    exit;
+    jsonResponse(['success' => false, 'error' => 'Please log in as an attendee'], 401);
 }
 
-// Validate required fields
-if (!$input || !isset($input['event_id'])) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Missing event_id']);
-    exit;
+if (!array_key_exists('event_id', $input)) {
+    jsonResponse(['success' => false, 'error' => 'Missing event_id'], 400);
 }
 
-$event_id = intval($input['event_id']);
+$event_id = requirePositiveInt($input['event_id'], 'event_id');
 $attendee_id = (int) $_SESSION['attendee_id'];
 
 try {
-    // Check if event exists and is not in the past
     $stmt = $pdo->prepare("SELECT event_date, event_status FROM eventdetails WHERE event_id = ?");
     $stmt->execute([$event_id]);
-    $event = $stmt->fetch(PDO::FETCH_ASSOC);
+    $event = $stmt->fetch();
 
     if (!$event) {
-        echo json_encode(['success' => false, 'error' => 'Event not found']);
-        exit;
+        jsonResponse(['success' => false, 'error' => 'Event not found'], 404);
     }
 
     $eventDate = new DateTime($event['event_date']);
     $today = new DateTime('today');
 
     if ($eventDate < $today) {
-        echo json_encode(['success' => false, 'error' => 'Cannot book past events']);
-        exit;
+        jsonResponse(['success' => false, 'error' => 'Cannot book past events'], 400);
     }
 
     if (($event['event_status'] ?? 'scheduled') === 'cancelled') {
-        echo json_encode(['success' => false, 'error' => 'This event has been cancelled']);
-        exit;
+        jsonResponse(['success' => false, 'error' => 'This event has been cancelled'], 400);
     }
 
-    // Allow a cancelled booking to be restored, but block duplicate active bookings.
     $check = $pdo->prepare("
         SELECT status
         FROM booking
@@ -58,11 +47,10 @@ try {
         LIMIT 1
     ");
     $check->execute([$event_id, $attendee_id]);
-    $existingBooking = $check->fetch(PDO::FETCH_ASSOC);
+    $existingBooking = $check->fetch();
 
     if ($existingBooking && $existingBooking['status'] === 'confirmed') {
-        echo json_encode(['success' => false, 'error' => 'Already booked for this event']);
-        exit;
+        jsonResponse(['success' => false, 'error' => 'Already booked for this event'], 409);
     }
 
     if ($existingBooking && $existingBooking['status'] === 'cancelled') {
@@ -76,22 +64,16 @@ try {
         ");
         $restore->execute([$event_id, $attendee_id]);
 
-        echo json_encode(['success' => true, 'message' => 'Booking restored']);
-        exit;
+        jsonSuccess(['message' => 'Booking restored']);
     }
 
-    // Insert booking
     $insert = $pdo->prepare("
         INSERT INTO booking (event_id, attendee_id, status)
         VALUES (?, ?, 'confirmed')
     ");
     $insert->execute([$event_id, $attendee_id]);
 
-    echo json_encode(['success' => true, 'message' => 'Booking successful']);
-} catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'error' => 'Server error: ' . $e->getMessage()
-    ]);
+    jsonSuccess(['message' => 'Booking successful']);
+} catch (Throwable $e) {
+    reportServerException($e, 'Unable to complete the booking right now.');
 }

@@ -10,15 +10,19 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'organizer' || $_SESSI
 
 ensureEventStatusSchema($pdo);
 
-if (isset($_GET['delete_user_id'])) {
-    $delete_user_id = (int)$_GET['delete_user_id'];
-    if ($delete_user_id !== $_SESSION['user_id']) {
-        $stmt = $pdo->prepare("DELETE FROM users WHERE user_id = ?");
-        $stmt->execute([$delete_user_id]);
-        header('Location: manage_users.php?deleted=1');
-        exit;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user_id'])) {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+        $error = 'Invalid request. Please try again.';
     } else {
-        $error = "You can't delete yourself!";
+        $delete_user_id = (int)$_POST['delete_user_id'];
+        if ($delete_user_id !== $_SESSION['user_id']) {
+            $stmt = $pdo->prepare("DELETE FROM users WHERE user_id = ?");
+            $stmt->execute([$delete_user_id]);
+            header('Location: manage_users.php?deleted=1');
+            exit;
+        } else {
+            $error = "You can't delete yourself!";
+        }
     }
 }
 
@@ -567,11 +571,11 @@ $cancelledEventsAudit = $cancelledEventsAuditStmt->fetchAll(PDO::FETCH_ASSOC);
                 </td>
                 <td class="text-end">
                   <?php if (!$isCurrentUser): ?>
-                    <a
-                      href="manage_users.php?delete_user_id=<?= (int)$user['user_id'] ?>"
-                      onclick="return confirm('Delete this user?');"
-                      class="btn btn-sm btn-danger-soft"
-                    >Delete</a>
+                    <form method="POST" class="d-inline" onsubmit="return confirm('Delete this user?');">
+                      <?= csrfInput() ?>
+                      <input type="hidden" name="delete_user_id" value="<?= (int)$user['user_id'] ?>" />
+                      <button type="submit" class="btn btn-sm btn-danger-soft">Delete</button>
+                    </form>
                   <?php else: ?>
                     <span class="mini-muted">Current user</span>
                   <?php endif; ?>

@@ -1,21 +1,17 @@
 <?php
-header('Content-Type: application/json');
 require 'db.php';
+require_once 'api_helpers.php';
 require_once 'session_bootstrap.php';
 require_once 'event_status_schema.php';
 
 ensureEventStatusSchema($pdo);
 
-//  Ensure attendee is logged in
 if (!isset($_SESSION['attendee_id'])) {
-    http_response_code(401);
-    echo json_encode(["error" => "Unauthorized"]);
-    exit;
+    jsonError('Unauthorized', 401);
 }
 
-$attendee_id = $_SESSION['attendee_id'];
+$attendee_id = requirePositiveInt($_SESSION['attendee_id'], 'attendee_id');
 
-//  GET: Fetch eligible booked events for this attendee
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     try {
         $stmt = $pdo->prepare("
@@ -34,41 +30,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             ORDER BY e.event_date ASC
         ");
         $stmt->execute([$attendee_id]);
-        $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $events = $stmt->fetchAll();
 
-        echo json_encode($events);
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(["error" => "Failed to fetch events"]);
+        jsonResponse($events);
+    } catch (Throwable $e) {
+        reportServerException($e, 'Failed to fetch events');
     }
-    exit;
 }
 
-//  POST: Submit feedback
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $input = json_decode(file_get_contents('php://input'), true);
+    $input = decodeJsonRequestBody();
 
     if (!isset($input['event_id'], $input['rating'])) {
-        http_response_code(400);
-        echo json_encode(["error" => "Missing required fields"]);
-        exit;
+        jsonError('Missing required fields', 400);
     }
 
-    $event_id = intval($input['event_id']);
-    $rating = intval($input['rating']);
-    $comment = isset($input['comment']) ? trim($input['comment']) : "";
+    $event_id = requirePositiveInt($input['event_id'], 'event_id');
+    $rating = filter_var($input['rating'], FILTER_VALIDATE_INT);
+    $comment = isset($input['comment']) && is_string($input['comment']) ? trim($input['comment']) : '';
 
-    //  Validate input
-    if ($event_id <= 0 || $rating < 1 || $rating > 5) {
-        http_response_code(400);
-        echo json_encode(["error" => "Invalid input"]);
-        exit;
+    if ($rating === false || $rating < 1 || $rating > 5) {
+        jsonError('Invalid input', 400);
     }
 
     if (strlen($comment) > 500) {
-        http_response_code(400);
-        echo json_encode(["error" => "Comment too long (max 500 characters)"]);
-        exit;
+        jsonError('Comment too long (max 500 characters)', 400);
     }
 
     try {
@@ -94,36 +80,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             LIMIT 1
         ");
         $eligibilityStmt->execute([$attendee_id, $event_id]);
-        $eligibleBooking = $eligibilityStmt->fetch(PDO::FETCH_ASSOC);
+        $eligibleBooking = $eligibilityStmt->fetch();
 
         if (!$eligibleBooking) {
-            http_response_code(400);
-            echo json_encode(["error" => "This event is not eligible for feedback yet"]);
-            exit;
+            jsonError('This event is not eligible for feedback yet', 400);
         }
 
         if ((int) $eligibleBooking['has_feedback'] === 1) {
-            http_response_code(400);
-            echo json_encode(["error" => "Feedback already submitted for this event"]);
-            exit;
+            jsonError('Feedback already submitted for this event', 400);
         }
 
-        // Insert feedback
         $stmt = $pdo->prepare("
             INSERT INTO feedback (attendee_id, event_id, rating, comment) 
             VALUES (?, ?, ?, ?)
         ");
         $stmt->execute([$attendee_id, $event_id, $rating, $comment]);
 
-        echo json_encode(["success" => true, "message" => "Feedback submitted successfully"]);
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(["error" => "Failed to save feedback"]);
+        jsonSuccess(['message' => 'Feedback submitted successfully']);
+    } catch (Throwable $e) {
+        reportServerException($e, 'Failed to save feedback');
     }
-    exit;
 }
 
-// Invalid method
-http_response_code(405);
-echo json_encode(["error" => "Method not allowed"]);
-exit;
+jsonError('Method not allowed', 405);
