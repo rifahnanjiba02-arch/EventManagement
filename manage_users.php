@@ -13,7 +13,7 @@ ensureEventStatusSchema($pdo);
 if (isset($_GET['delete_user_id'])) {
     $delete_user_id = (int)$_GET['delete_user_id'];
     if ($delete_user_id !== $_SESSION['user_id']) {
-        $stmt = $pdo->prepare("DELETE FROM Users WHERE user_id = ?");
+        $stmt = $pdo->prepare("DELETE FROM users WHERE user_id = ?");
         $stmt->execute([$delete_user_id]);
         header('Location: manage_users.php?deleted=1');
         exit;
@@ -31,9 +31,9 @@ $stmt = $pdo->prepare("
         u.role,
         o.is_admin,
         up.profile_picture
-    FROM Users u
-    LEFT JOIN Organizer o ON o.user_id = u.user_id
-    LEFT JOIN User_Profile up ON up.user_id = u.user_id
+    FROM users u
+    LEFT JOIN organizer o ON o.user_id = u.user_id
+    LEFT JOIN user_profile up ON up.user_id = u.user_id
     ORDER BY u.first_name, u.last_name
 ");
 $stmt->execute();
@@ -58,14 +58,14 @@ foreach ($users as $user) {
 
 $cancelledEventsStmt = $pdo->query("
     SELECT COUNT(*)
-    FROM EventDetails
+    FROM eventdetails
     WHERE event_status = 'cancelled'
 ");
 $cancelledEventsCount = (int) $cancelledEventsStmt->fetchColumn();
 
 $unattributedCancelledEventsStmt = $pdo->query("
     SELECT COUNT(*)
-    FROM EventDetails
+    FROM eventdetails
     WHERE event_status = 'cancelled'
       AND cancelled_by_organizer_id IS NULL
 ");
@@ -78,9 +78,9 @@ $cancellationLeadersStmt = $pdo->query("
         u.last_name,
         u.email,
         COUNT(e.event_id) AS cancelled_events
-    FROM EventDetails e
-    JOIN Organizer o ON o.organizer_id = e.cancelled_by_organizer_id
-    JOIN Users u ON u.user_id = o.user_id
+    FROM eventdetails e
+    JOIN organizer o ON o.organizer_id = e.cancelled_by_organizer_id
+    JOIN users u ON u.user_id = o.user_id
     WHERE e.event_status = 'cancelled'
     GROUP BY o.organizer_id, u.first_name, u.last_name, u.email
     ORDER BY cancelled_events DESC, u.first_name ASC, u.last_name ASC
@@ -99,9 +99,9 @@ $cancelledEventsAuditStmt = $pdo->query("
         u.first_name,
         u.last_name,
         u.email
-    FROM EventDetails e
-    LEFT JOIN Organizer o ON o.organizer_id = e.cancelled_by_organizer_id
-    LEFT JOIN Users u ON u.user_id = o.user_id
+    FROM eventdetails e
+    LEFT JOIN organizer o ON o.organizer_id = e.cancelled_by_organizer_id
+    LEFT JOIN users u ON u.user_id = o.user_id
     WHERE e.event_status = 'cancelled'
     ORDER BY e.cancellation_time DESC, e.event_id DESC
 ");

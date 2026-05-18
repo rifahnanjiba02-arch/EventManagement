@@ -17,7 +17,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'organizer') {
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['fetch_organizers'])) {
     try {
         // Get current organizer_id to exclude from collaborators list
-        $stmtSelf = $pdo->prepare("SELECT organizer_id FROM Organizer WHERE user_id = ?");
+        $stmtSelf = $pdo->prepare("SELECT organizer_id FROM organizer WHERE user_id = ?");
         $stmtSelf->execute([$_SESSION['user_id']]);
         $self = $stmtSelf->fetch(PDO::FETCH_ASSOC);
 
@@ -30,8 +30,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['fetch_organizers'])) {
         // Fetch all other organizers except the current logged-in organizer
         $stmt = $pdo->prepare("
             SELECT o.organizer_id, u.first_name, u.last_name, u.email
-            FROM Organizer o
-            JOIN Users u ON o.user_id = u.user_id
+            FROM organizer o
+            JOIN users u ON o.user_id = u.user_id
             WHERE u.role = 'organizer' AND o.organizer_id != ?
         ");
         $stmt->execute([$self['organizer_id']]);
@@ -72,7 +72,7 @@ if (!strtotime($date)) {
 }
 
 // Get current organizer_id
-$stmtOrg = $pdo->prepare("SELECT organizer_id FROM Organizer WHERE user_id = ?");
+$stmtOrg = $pdo->prepare("SELECT organizer_id FROM organizer WHERE user_id = ?");
 $stmtOrg->execute([$_SESSION['user_id']]);
 $currentOrganizer = $stmtOrg->fetch(PDO::FETCH_ASSOC);
 
@@ -85,7 +85,7 @@ if (!$currentOrganizer) {
 try {
     $pdo->beginTransaction();
 
-    $stmt = $pdo->prepare("INSERT INTO EventDetails (title, type, event_date, location) VALUES (?, ?, ?, ?)");
+    $stmt = $pdo->prepare("INSERT INTO eventdetails (title, type, event_date, location) VALUES (?, ?, ?, ?)");
     $stmt->execute([$title, $type, $date, $location]);
     $event_id = $pdo->lastInsertId();
 
@@ -100,12 +100,12 @@ try {
             VALUES (?, ?, ?)
         ");
 
-        $inviteeUserStmt = $pdo->prepare("SELECT user_id FROM Organizer WHERE organizer_id = ?");
+        $inviteeUserStmt = $pdo->prepare("SELECT user_id FROM organizer WHERE organizer_id = ?");
 
         foreach ($_POST['collaborators'] as $collaborator_id) {
             $collab_id = (int)$collaborator_id;
             if ($collab_id !== (int)$currentOrganizer['organizer_id']) {
-                $check = $pdo->prepare("SELECT 1 FROM Organizer WHERE organizer_id = ?");
+                $check = $pdo->prepare("SELECT 1 FROM organizer WHERE organizer_id = ?");
                 $check->execute([$collab_id]);
                 if ($check->fetch()) {
                     $requestStmt->execute([$event_id, $collab_id, $currentOrganizer['organizer_id']]);

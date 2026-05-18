@@ -12,7 +12,7 @@ try {
     // Fetch upcoming events (event_date >= today)
     $upcomingStmt = $pdo->prepare("
         SELECT event_id AS id, title, type, event_date, location
-        FROM EventDetails
+        FROM eventdetails
         WHERE event_date >= ? AND event_status = 'scheduled'
         ORDER BY event_date ASC
     ");
@@ -22,7 +22,7 @@ try {
     // Fetch previous events (event_date < today)
     $previousStmt = $pdo->prepare("
         SELECT event_id AS id, title, type, event_date, location
-        FROM EventDetails
+        FROM eventdetails
         WHERE event_date < ? AND event_status = 'scheduled'
         ORDER BY event_date DESC
     ");

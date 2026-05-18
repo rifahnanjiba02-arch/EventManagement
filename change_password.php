@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$errors) {
         try {
-            $stmt = $pdo->prepare('SELECT password_hash FROM Users WHERE user_id = ? LIMIT 1');
+            $stmt = $pdo->prepare('SELECT password_hash FROM users WHERE user_id = ? LIMIT 1');
             $stmt->execute([$userId]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = 'Your current password is incorrect.';
             } else {
                 $newPasswordHash = password_hash($newPassword, PASSWORD_DEFAULT);
-                $updateStmt = $pdo->prepare('UPDATE Users SET password_hash = ? WHERE user_id = ?');
+                $updateStmt = $pdo->prepare('UPDATE users SET password_hash = ? WHERE user_id = ?');
                 $updateStmt->execute([$newPasswordHash, $userId]);
                 $successMessage = 'Password updated successfully.';
             }

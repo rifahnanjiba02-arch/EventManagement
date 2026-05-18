@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         try {
-            $stmt = $pdo->prepare('SELECT COUNT(*) FROM Users WHERE email = ?');
+            $stmt = $pdo->prepare('SELECT COUNT(*) FROM users WHERE email = ?');
             $stmt->execute([$formData['email']]);
 
             if ((int) $stmt->fetchColumn() > 0) {
@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pdo->beginTransaction();
 
                 $stmt = $pdo->prepare(
-                    'INSERT INTO Users (
+                    'INSERT INTO users (
                         first_name,
                         last_name,
                         email,
@@ -114,16 +114,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $userId = (int) $pdo->lastInsertId();
 
                 $stmt = $pdo->prepare(
-                    "INSERT INTO User_Profile (user_id, bio, profile_picture, social_link1, social_link2, social_link3)
+                    "INSERT INTO user_profile (user_id, bio, profile_picture, social_link1, social_link2, social_link3)
                      VALUES (?, '', NULL, NULL, NULL, NULL)"
                 );
                 $stmt->execute([$userId]);
 
                 if ($formData['role'] === 'organizer') {
-                    $stmt = $pdo->query('SELECT COALESCE(MAX(organizer_id), 1000) + 1 FROM Organizer');
+                    $stmt = $pdo->query('SELECT COALESCE(MAX(organizer_id), 1000) + 1 FROM organizer');
                     $organizerId = (int) $stmt->fetchColumn();
 
-                    $stmt = $pdo->prepare('INSERT INTO Organizer (user_id, organizer_id, is_admin) VALUES (?, ?, 0)');
+                    $stmt = $pdo->prepare('INSERT INTO organizer (user_id, organizer_id, is_admin) VALUES (?, ?, 0)');
                     $stmt->execute([$userId, $organizerId]);
 
                     session_regenerate_id(true);
@@ -133,10 +133,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['attendee_id'] = null;
                     $_SESSION['is_admin'] = 0;
                 } else {
-                    $stmt = $pdo->query('SELECT COALESCE(MAX(attendee_id), 2000) + 1 FROM Attendee');
+                    $stmt = $pdo->query('SELECT COALESCE(MAX(attendee_id), 2000) + 1 FROM attendee');
                     $attendeeId = (int) $stmt->fetchColumn();
 
-                    $stmt = $pdo->prepare('INSERT INTO Attendee (user_id, attendee_id) VALUES (?, ?)');
+                    $stmt = $pdo->prepare('INSERT INTO attendee (user_id, attendee_id) VALUES (?, ?)');
                     $stmt->execute([$userId, $attendeeId]);
 
                     session_regenerate_id(true);

@@ -28,8 +28,8 @@ try {
     // Check if booking exists and whether it is still eligible for cancellation.
     $check = $pdo->prepare("
         SELECT b.status, b.attendance_status, e.event_date, e.event_status
-        FROM Booking b
-        JOIN EventDetails e ON e.event_id = b.event_id
+        FROM booking b
+        JOIN eventdetails e ON e.event_id = b.event_id
         WHERE b.event_id = ? AND b.attendee_id = ?
     ");
     $check->execute([$event_id, $attendee_id]);
@@ -74,7 +74,7 @@ try {
 
     // Update booking to cancelled
     $stmt = $pdo->prepare("
-        UPDATE Booking 
+        UPDATE booking 
         SET status = 'cancelled', cancellation_time = NOW() 
         WHERE event_id = ? AND attendee_id = ?
     ");

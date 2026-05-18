@@ -17,7 +17,7 @@ try {
         $link3 = $_POST['social_link3'] ?? null;
 
         $stmt = $pdo->prepare("
-            UPDATE User_Profile
+            UPDATE user_profile
             SET bio = ?, social_link1 = ?, social_link2 = ?, social_link3 = ?
             WHERE user_id = ?
         ");
@@ -32,10 +32,10 @@ try {
                up.bio, up.profile_picture, up.social_link1, up.social_link2, up.social_link3,
                a.attendee_id,
                COALESCE(COUNT(b.booking_id), 0) AS total_bookings
-        FROM Users u
-        LEFT JOIN User_Profile up ON u.user_id = up.user_id
-        JOIN Attendee a ON u.user_id = a.user_id
-        LEFT JOIN Booking b ON a.attendee_id = b.attendee_id
+        FROM users u
+        LEFT JOIN user_profile up ON u.user_id = up.user_id
+        JOIN attendee a ON u.user_id = a.user_id
+        LEFT JOIN booking b ON a.attendee_id = b.attendee_id
         WHERE u.user_id = ?
         GROUP BY u.user_id, a.attendee_id
     ");

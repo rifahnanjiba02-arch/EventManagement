@@ -20,9 +20,9 @@ function ensureCollaborationSchema(PDO $pdo): void
             UNIQUE KEY uniq_event_invited_organizer (event_id, invited_organizer_id),
             KEY idx_invited_organizer_status (invited_organizer_id, status),
             KEY idx_invited_by_organizer (invited_by_organizer_id),
-            CONSTRAINT ecr_event_fk FOREIGN KEY (event_id) REFERENCES EventDetails (event_id) ON DELETE CASCADE,
-            CONSTRAINT ecr_invited_organizer_fk FOREIGN KEY (invited_organizer_id) REFERENCES Organizer (organizer_id) ON DELETE CASCADE,
-            CONSTRAINT ecr_invited_by_organizer_fk FOREIGN KEY (invited_by_organizer_id) REFERENCES Organizer (organizer_id) ON DELETE CASCADE
+            CONSTRAINT ecr_event_fk FOREIGN KEY (event_id) REFERENCES eventdetails (event_id) ON DELETE CASCADE,
+            CONSTRAINT ecr_invited_organizer_fk FOREIGN KEY (invited_organizer_id) REFERENCES organizer (organizer_id) ON DELETE CASCADE,
+            CONSTRAINT ecr_invited_by_organizer_fk FOREIGN KEY (invited_by_organizer_id) REFERENCES organizer (organizer_id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
     ");
 
@@ -38,8 +38,8 @@ function ensureCollaborationSchema(PDO $pdo): void
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             KEY idx_notifications_user (user_id, is_read, created_at),
             KEY idx_notifications_request (related_request_id),
-            CONSTRAINT notifications_user_fk FOREIGN KEY (user_id) REFERENCES Users (user_id) ON DELETE CASCADE,
-            CONSTRAINT notifications_event_fk FOREIGN KEY (related_event_id) REFERENCES EventDetails (event_id) ON DELETE SET NULL,
+            CONSTRAINT notifications_user_fk FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE,
+            CONSTRAINT notifications_event_fk FOREIGN KEY (related_event_id) REFERENCES eventdetails (event_id) ON DELETE SET NULL,
             CONSTRAINT notifications_request_fk FOREIGN KEY (related_request_id) REFERENCES event_collaboration_requests (request_id) ON DELETE SET NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
     ");

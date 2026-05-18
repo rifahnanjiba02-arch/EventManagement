@@ -13,8 +13,8 @@ $user_id = intval($_GET['user_id']);
 
 $stmt = $pdo->prepare("
     SELECT u.name, u.email, u.bio, u.profile_pic_url 
-    FROM Users u
-    JOIN Attendee a ON u.user_id = a.user_id
+    FROM users u
+    JOIN attendee a ON u.user_id = a.user_id
     WHERE a.user_id = ?
 ");
 $stmt->execute([$user_id]);

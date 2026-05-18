@@ -20,9 +20,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     try {
         $stmt = $pdo->prepare("
             SELECT e.event_id AS id, e.title
-            FROM EventDetails e
-            INNER JOIN Booking b ON e.event_id = b.event_id
-            LEFT JOIN Feedback f ON f.event_id = e.event_id AND f.attendee_id = b.attendee_id
+            FROM eventdetails e
+            INNER JOIN booking b ON e.event_id = b.event_id
+            LEFT JOIN feedback f ON f.event_id = e.event_id AND f.attendee_id = b.attendee_id
             WHERE b.attendee_id = ?
               AND b.status = 'confirmed'
               AND COALESCE(e.event_status, 'scheduled') <> 'cancelled'
@@ -77,12 +77,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 e.title,
                 EXISTS(
                     SELECT 1
-                    FROM Feedback f
+                    FROM feedback f
                     WHERE f.attendee_id = b.attendee_id
                       AND f.event_id = b.event_id
                 ) AS has_feedback
-            FROM Booking b
-            INNER JOIN EventDetails e ON e.event_id = b.event_id
+            FROM booking b
+            INNER JOIN eventdetails e ON e.event_id = b.event_id
             WHERE b.attendee_id = ?
               AND b.event_id = ?
               AND b.status = 'confirmed'
@@ -110,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Insert feedback
         $stmt = $pdo->prepare("
-            INSERT INTO Feedback (attendee_id, event_id, rating, comment) 
+            INSERT INTO feedback (attendee_id, event_id, rating, comment) 
             VALUES (?, ?, ?, ?)
         ");
         $stmt->execute([$attendee_id, $event_id, $rating, $comment]);

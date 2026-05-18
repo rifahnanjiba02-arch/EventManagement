@@ -17,7 +17,7 @@ if ($eventId <= 0) {
 
 $eventStmt = $pdo->prepare("
     SELECT e.event_id, e.title
-    FROM EventDetails e
+    FROM eventdetails e
     JOIN create_event ce ON ce.event_id = e.event_id
     WHERE e.event_id = ? AND ce.organizer_id = ?
     LIMIT 1
@@ -39,9 +39,9 @@ $attendeesStmt = $pdo->prepare("
         b.status AS booking_status,
         b.attendance_status,
         b.booking_time
-    FROM Booking b
-    JOIN Attendee a ON a.attendee_id = b.attendee_id
-    JOIN Users u ON u.user_id = a.user_id
+    FROM booking b
+    JOIN attendee a ON a.attendee_id = b.attendee_id
+    JOIN users u ON u.user_id = a.user_id
     WHERE b.event_id = ?
     ORDER BY
         CASE WHEN b.status = 'confirmed' THEN 0 ELSE 1 END,

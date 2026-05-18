@@ -28,7 +28,7 @@ $attendee_id = (int) $_SESSION['attendee_id'];
 
 try {
     // Check if event exists and is not in the past
-    $stmt = $pdo->prepare("SELECT event_date, event_status FROM EventDetails WHERE event_id = ?");
+    $stmt = $pdo->prepare("SELECT event_date, event_status FROM eventdetails WHERE event_id = ?");
     $stmt->execute([$event_id]);
     $event = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -53,7 +53,7 @@ try {
     // Allow a cancelled booking to be restored, but block duplicate active bookings.
     $check = $pdo->prepare("
         SELECT status
-        FROM Booking
+        FROM booking
         WHERE event_id = ? AND attendee_id = ?
         LIMIT 1
     ");
@@ -67,7 +67,7 @@ try {
 
     if ($existingBooking && $existingBooking['status'] === 'cancelled') {
         $restore = $pdo->prepare("
-            UPDATE Booking
+            UPDATE booking
             SET status = 'confirmed',
                 attendance_status = 'pending',
                 booking_time = NOW(),
@@ -82,7 +82,7 @@ try {
 
     // Insert booking
     $insert = $pdo->prepare("
-        INSERT INTO Booking (event_id, attendee_id, status)
+        INSERT INTO booking (event_id, attendee_id, status)
         VALUES (?, ?, 'confirmed')
     ");
     $insert->execute([$event_id, $attendee_id]);

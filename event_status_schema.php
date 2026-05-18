@@ -8,11 +8,11 @@ function ensureEventStatusSchema(PDO $pdo): void
         return;
     }
 
-    $columns = $pdo->query("SHOW COLUMNS FROM EventDetails")->fetchAll(PDO::FETCH_COLUMN, 0);
+    $columns = $pdo->query("SHOW COLUMNS FROM eventdetails")->fetchAll(PDO::FETCH_COLUMN, 0);
 
     if (!in_array('event_status', $columns, true)) {
         $pdo->exec("
-            ALTER TABLE EventDetails
+            ALTER TABLE eventdetails
             ADD COLUMN event_status ENUM('scheduled', 'cancelled') NOT NULL DEFAULT 'scheduled'
             AFTER location
         ");
@@ -20,7 +20,7 @@ function ensureEventStatusSchema(PDO $pdo): void
 
     if (!in_array('cancellation_reason', $columns, true)) {
         $pdo->exec("
-            ALTER TABLE EventDetails
+            ALTER TABLE eventdetails
             ADD COLUMN cancellation_reason TEXT NULL
             AFTER event_status
         ");
@@ -28,7 +28,7 @@ function ensureEventStatusSchema(PDO $pdo): void
 
     if (!in_array('cancellation_time', $columns, true)) {
         $pdo->exec("
-            ALTER TABLE EventDetails
+            ALTER TABLE eventdetails
             ADD COLUMN cancellation_time DATETIME NULL
             AFTER cancellation_reason
         ");
@@ -36,7 +36,7 @@ function ensureEventStatusSchema(PDO $pdo): void
 
     if (!in_array('cancelled_by_organizer_id', $columns, true)) {
         $pdo->exec("
-            ALTER TABLE EventDetails
+            ALTER TABLE eventdetails
             ADD COLUMN cancelled_by_organizer_id INT NULL
             AFTER cancellation_time
         ");
@@ -44,7 +44,7 @@ function ensureEventStatusSchema(PDO $pdo): void
 
     // Backfill legacy cancellations only when one organizer can be attributed confidently.
     $pdo->exec("
-        UPDATE EventDetails e
+        UPDATE eventdetails e
         JOIN (
             SELECT ce.event_id, MIN(ce.organizer_id) AS organizer_id
             FROM create_event ce
@@ -67,8 +67,8 @@ function ensureEventStatusSchema(PDO $pdo): void
             resolved_at DATETIME DEFAULT NULL,
             KEY idx_ecb_event_status (event_id, status),
             KEY idx_ecb_requester_status (requested_by_organizer_id, status),
-            CONSTRAINT ecb_event_fk FOREIGN KEY (event_id) REFERENCES EventDetails (event_id) ON DELETE CASCADE,
-            CONSTRAINT ecb_requester_fk FOREIGN KEY (requested_by_organizer_id) REFERENCES Organizer (organizer_id) ON DELETE CASCADE
+            CONSTRAINT ecb_event_fk FOREIGN KEY (event_id) REFERENCES eventdetails (event_id) ON DELETE CASCADE,
+            CONSTRAINT ecb_requester_fk FOREIGN KEY (requested_by_organizer_id) REFERENCES organizer (organizer_id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
     ");
 
@@ -82,7 +82,7 @@ function ensureEventStatusSchema(PDO $pdo): void
             UNIQUE KEY uniq_batch_organizer (batch_id, organizer_id),
             KEY idx_eca_organizer_status (organizer_id, status),
             CONSTRAINT eca_batch_fk FOREIGN KEY (batch_id) REFERENCES event_cancellation_batches (batch_id) ON DELETE CASCADE,
-            CONSTRAINT eca_organizer_fk FOREIGN KEY (organizer_id) REFERENCES Organizer (organizer_id) ON DELETE CASCADE
+            CONSTRAINT eca_organizer_fk FOREIGN KEY (organizer_id) REFERENCES organizer (organizer_id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
     ");
 

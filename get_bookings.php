@@ -27,9 +27,9 @@ SELECT
     b.cancellation_time,
     b.status, 
     b.attendance_status AS attendance,
-    (SELECT COUNT(*) FROM Booking WHERE event_id = e.event_id) AS total_participants
-FROM Booking b
-JOIN EventDetails e ON b.event_id = e.event_id
+    (SELECT COUNT(*) FROM booking WHERE event_id = e.event_id) AS total_participants
+FROM booking b
+JOIN eventdetails e ON b.event_id = e.event_id
 WHERE b.attendee_id = ?
 ";
 

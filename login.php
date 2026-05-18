@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         try {
             $stmt = $pdo->prepare(
-                'SELECT user_id, password_hash, role FROM Users WHERE email = :email LIMIT 1'
+                'SELECT user_id, password_hash, role FROM users WHERE email = :email LIMIT 1'
             );
             $stmt->execute(['email' => $formData['email']]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['role'] = $user['role'];
 
                 if ($user['role'] === 'organizer') {
-                    $stmt = $pdo->prepare('SELECT organizer_id, is_admin FROM Organizer WHERE user_id = ? LIMIT 1');
+                    $stmt = $pdo->prepare('SELECT organizer_id, is_admin FROM organizer WHERE user_id = ? LIMIT 1');
                     $stmt->execute([$user['user_id']]);
                     $organizer = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     header('Location: organizer_profile.php');
                 } else {
-                    $stmt = $pdo->prepare('SELECT attendee_id FROM Attendee WHERE user_id = ? LIMIT 1');
+                    $stmt = $pdo->prepare('SELECT attendee_id FROM attendee WHERE user_id = ? LIMIT 1');
                     $stmt->execute([$user['user_id']]);
                     $attendee = $stmt->fetch(PDO::FETCH_ASSOC);
 

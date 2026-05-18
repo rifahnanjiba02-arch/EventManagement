@@ -39,7 +39,7 @@ $target = $uploadDir . $newFileName;
 
 // Move uploaded file and update database
 if (move_uploaded_file($fileTmp, $target)) {
-    $stmt = $pdo->prepare("UPDATE User_Profile SET profile_picture = ? WHERE user_id = ?");
+    $stmt = $pdo->prepare("UPDATE user_profile SET profile_picture = ? WHERE user_id = ?");
     $stmt->execute([$target, $user_id]);
 
     // Redirect to appropriate profile page based on role

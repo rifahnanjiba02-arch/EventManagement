@@ -38,8 +38,8 @@ try {
     // Check if booking exists, is confirmed, and the attendance action fits the event date.
     $stmt = $pdo->prepare("
         SELECT b.status, b.attendance_status, e.event_date, e.event_status
-        FROM Booking b
-        JOIN EventDetails e ON e.event_id = b.event_id
+        FROM booking b
+        JOIN eventdetails e ON e.event_id = b.event_id
         WHERE b.attendee_id = ? AND b.event_id = ?
     ");
     $stmt->execute([$attendee_id, $event_id]);
@@ -79,7 +79,7 @@ try {
     }
 
     // Update attendance status
-    $update = $pdo->prepare("UPDATE Booking SET attendance_status = ? WHERE attendee_id = ? AND event_id = ?");
+    $update = $pdo->prepare("UPDATE booking SET attendance_status = ? WHERE attendee_id = ? AND event_id = ?");
     $update->execute([$attendance_status, $attendee_id, $event_id]);
 
     echo json_encode(['success' => true]);

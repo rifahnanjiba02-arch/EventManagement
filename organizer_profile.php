@@ -19,7 +19,7 @@ unset($_SESSION['organizer_notice']);
 function finalizeEventCancellation(PDO $pdo, int $eventId, int $actorOrganizerId, string $eventTitle, string $cancellationReason): void
 {
     $cancelStmt = $pdo->prepare("
-        UPDATE EventDetails
+        UPDATE eventdetails
         SET event_status = 'cancelled',
             cancellation_reason = ?,
             cancellation_time = NOW(),
@@ -30,9 +30,9 @@ function finalizeEventCancellation(PDO $pdo, int $eventId, int $actorOrganizerId
 
     $attendeeStmt = $pdo->prepare("
         SELECT DISTINCT u.user_id
-        FROM Booking b
-        JOIN Attendee a ON a.attendee_id = b.attendee_id
-        JOIN Users u ON u.user_id = a.user_id
+        FROM booking b
+        JOIN attendee a ON a.attendee_id = b.attendee_id
+        JOIN users u ON u.user_id = a.user_id
         WHERE b.event_id = ? AND b.status = 'confirmed'
     ");
     $attendeeStmt->execute([$eventId]);
@@ -54,9 +54,9 @@ try {
         SELECT u.first_name, u.last_name, u.email, up.bio, up.profile_picture,
                up.social_link1, up.social_link2, up.social_link3,
                o.organizer_id, o.is_admin
-        FROM Users u
-        JOIN User_Profile up ON u.user_id = up.user_id
-        JOIN Organizer o ON u.user_id = o.user_id
+        FROM users u
+        JOIN user_profile up ON u.user_id = up.user_id
+        JOIN organizer o ON u.user_id = o.user_id
         WHERE u.user_id = ?
     ");
     $stmt->execute([$user_id]);
@@ -81,7 +81,7 @@ try {
         $link3 = $_POST['social_link3'] ?? null;
 
         $stmt = $pdo->prepare("
-            UPDATE User_Profile
+            UPDATE user_profile
             SET bio = ?, social_link1 = ?, social_link2 = ?, social_link3 = ?
             WHERE user_id = ?
         ");
@@ -104,9 +104,9 @@ try {
                    inviter_user.first_name AS inviter_first_name,
                    inviter_user.last_name AS inviter_last_name
             FROM event_collaboration_requests ecr
-            JOIN EventDetails e ON e.event_id = ecr.event_id
-            JOIN Organizer inviter ON inviter.organizer_id = ecr.invited_by_organizer_id
-            JOIN Users inviter_user ON inviter_user.user_id = inviter.user_id
+            JOIN eventdetails e ON e.event_id = ecr.event_id
+            JOIN organizer inviter ON inviter.organizer_id = ecr.invited_by_organizer_id
+            JOIN users inviter_user ON inviter_user.user_id = inviter.user_id
             WHERE ecr.request_id = ? AND ecr.invited_organizer_id = ?
             FOR UPDATE
         ");
@@ -175,9 +175,9 @@ try {
                 requester_user.last_name AS requester_last_name
             FROM event_cancellation_approvals eca
             JOIN event_cancellation_batches ecb ON ecb.batch_id = eca.batch_id
-            JOIN EventDetails e ON e.event_id = ecb.event_id
-            JOIN Organizer requester ON requester.organizer_id = ecb.requested_by_organizer_id
-            JOIN Users requester_user ON requester_user.user_id = requester.user_id
+            JOIN eventdetails e ON e.event_id = ecb.event_id
+            JOIN organizer requester ON requester.organizer_id = ecb.requested_by_organizer_id
+            JOIN users requester_user ON requester_user.user_id = requester.user_id
             WHERE eca.approval_id = ? AND eca.organizer_id = ?
             FOR UPDATE
         ");
@@ -312,7 +312,7 @@ try {
 
         $eventStmt = $pdo->prepare("
             SELECT e.event_id, e.title, e.event_date, e.event_status, COUNT(ce_all.organizer_id) AS organizer_count
-            FROM EventDetails e
+            FROM eventdetails e
             JOIN create_event ce ON ce.event_id = e.event_id
             JOIN create_event ce_all ON ce_all.event_id = e.event_id
             WHERE e.event_id = ? AND ce.organizer_id = ?
@@ -381,8 +381,8 @@ try {
             $collaboratorStmt = $pdo->prepare("
                 SELECT o.organizer_id, o.user_id, u.first_name, u.last_name
                 FROM create_event ce
-                JOIN Organizer o ON o.organizer_id = ce.organizer_id
-                JOIN Users u ON u.user_id = o.user_id
+                JOIN organizer o ON o.organizer_id = ce.organizer_id
+                JOIN users u ON u.user_id = o.user_id
                 WHERE ce.event_id = ? AND ce.organizer_id != ?
             ");
             $collaboratorStmt->execute([$eventId, $organizerId]);
@@ -440,14 +440,14 @@ try {
                        SEPARATOR ', '
                    )
                    FROM create_event ce_team
-                   JOIN Organizer o_team ON o_team.organizer_id = ce_team.organizer_id
-                   JOIN Users u_team ON u_team.user_id = o_team.user_id
+                   JOIN organizer o_team ON o_team.organizer_id = ce_team.organizer_id
+                   JOIN users u_team ON u_team.user_id = o_team.user_id
                    WHERE ce_team.event_id = e.event_id
                ) AS organizer_names,
                MAX(CASE WHEN ecb.status = 'pending' THEN 1 ELSE 0 END) AS has_pending_cancellation_request,
                COUNT(DISTINCT CASE WHEN b.status = 'confirmed' THEN b.booking_id END) AS booking_count
-        FROM EventDetails e
-        LEFT JOIN Booking b ON e.event_id = b.event_id
+        FROM eventdetails e
+        LEFT JOIN booking b ON e.event_id = b.event_id
         JOIN create_event ce ON e.event_id = ce.event_id
         JOIN create_event ce_all ON ce_all.event_id = e.event_id
         LEFT JOIN event_cancellation_batches ecb ON ecb.event_id = e.event_id
@@ -465,14 +465,14 @@ try {
     if ((int)$profile['is_admin'] === 1) {
         $cancelledEventsCountStmt = $pdo->query("
             SELECT COUNT(*)
-            FROM EventDetails
+            FROM eventdetails
             WHERE event_status = 'cancelled'
         ");
         $cancelledEventsCount = (int) $cancelledEventsCountStmt->fetchColumn();
 
         $unattributedCancelledEventsCountStmt = $pdo->query("
             SELECT COUNT(*)
-            FROM EventDetails
+            FROM eventdetails
             WHERE event_status = 'cancelled'
               AND cancelled_by_organizer_id IS NULL
         ");
@@ -490,9 +490,9 @@ try {
                 u.first_name,
                 u.last_name,
                 u.email
-            FROM EventDetails e
-            LEFT JOIN Organizer o ON o.organizer_id = e.cancelled_by_organizer_id
-            LEFT JOIN Users u ON u.user_id = o.user_id
+            FROM eventdetails e
+            LEFT JOIN organizer o ON o.organizer_id = e.cancelled_by_organizer_id
+            LEFT JOIN users u ON u.user_id = o.user_id
             WHERE e.event_status = 'cancelled'
             ORDER BY e.cancellation_time DESC, e.event_id DESC
             LIMIT 8
@@ -505,9 +505,9 @@ try {
                inviter_user.first_name, inviter_user.last_name,
                n.is_read
         FROM event_collaboration_requests ecr
-        JOIN EventDetails e ON e.event_id = ecr.event_id
-        JOIN Organizer inviter ON inviter.organizer_id = ecr.invited_by_organizer_id
-        JOIN Users inviter_user ON inviter_user.user_id = inviter.user_id
+        JOIN eventdetails e ON e.event_id = ecr.event_id
+        JOIN organizer inviter ON inviter.organizer_id = ecr.invited_by_organizer_id
+        JOIN users inviter_user ON inviter_user.user_id = inviter.user_id
         LEFT JOIN notifications n ON n.related_request_id = ecr.request_id AND n.user_id = ?
         WHERE ecr.invited_organizer_id = ? AND ecr.status = 'pending'
         ORDER BY ecr.created_at DESC
@@ -529,9 +529,9 @@ try {
             n.is_read
         FROM event_cancellation_approvals eca
         JOIN event_cancellation_batches ecb ON ecb.batch_id = eca.batch_id
-        JOIN EventDetails e ON e.event_id = ecb.event_id
-        JOIN Organizer requester ON requester.organizer_id = ecb.requested_by_organizer_id
-        JOIN Users requester_user ON requester_user.user_id = requester.user_id
+        JOIN eventdetails e ON e.event_id = ecb.event_id
+        JOIN organizer requester ON requester.organizer_id = ecb.requested_by_organizer_id
+        JOIN users requester_user ON requester_user.user_id = requester.user_id
         LEFT JOIN notifications n ON n.related_event_id = e.event_id AND n.user_id = ? AND n.type = 'event_cancellation_request'
         WHERE eca.organizer_id = ? AND eca.status = 'pending' AND ecb.status = 'pending'
         ORDER BY ecb.created_at DESC
@@ -543,9 +543,9 @@ try {
         SELECT ecr.request_id, ecr.status, ecr.created_at, ecr.responded_at,
                e.title, invited_user.first_name, invited_user.last_name
         FROM event_collaboration_requests ecr
-        JOIN EventDetails e ON e.event_id = ecr.event_id
-        JOIN Organizer invited_org ON invited_org.organizer_id = ecr.invited_organizer_id
-        JOIN Users invited_user ON invited_user.user_id = invited_org.user_id
+        JOIN eventdetails e ON e.event_id = ecr.event_id
+        JOIN organizer invited_org ON invited_org.organizer_id = ecr.invited_organizer_id
+        JOIN users invited_user ON invited_user.user_id = invited_org.user_id
         WHERE ecr.invited_by_organizer_id = ?
         ORDER BY ecr.created_at DESC
     ");
@@ -563,7 +563,7 @@ try {
             SUM(CASE WHEN eca.status = 'declined' THEN 1 ELSE 0 END) AS approvals_declined,
             SUM(CASE WHEN eca.status = 'pending' THEN 1 ELSE 0 END) AS approvals_pending
         FROM event_cancellation_batches ecb
-        JOIN EventDetails e ON e.event_id = ecb.event_id
+        JOIN eventdetails e ON e.event_id = ecb.event_id
         LEFT JOIN event_cancellation_approvals eca ON eca.batch_id = ecb.batch_id
         WHERE ecb.requested_by_organizer_id = ?
         GROUP BY ecb.batch_id, ecb.status, ecb.created_at, ecb.resolved_at, e.title
